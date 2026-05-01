@@ -10,7 +10,7 @@ import { useToast } from '../../components/Toast';
 import api from '../../api';
 import { AuthContext } from '../../context/AuthContext';
 
-const BASE_URL = 'https://volunteer-management-system-qux8.onrender.com';
+const BASE_URL = 'https://volunteer-management-system-myg0.onrender.com';
 
 const StarRow = ({ rating, onRate, interactive = false, size = 22 }) => (
   <View style={{ flexDirection: 'row', gap: 4 }}>

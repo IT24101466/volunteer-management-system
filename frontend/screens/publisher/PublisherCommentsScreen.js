@@ -11,7 +11,7 @@ import { useConfirm } from '../../components/ConfirmModal';
 import api from '../../api';
 import { AuthContext } from '../../context/AuthContext';
 
-const BASE_URL = 'https://volunteer-management-system-qux8.onrender.com';
+const BASE_URL = 'https://volunteer-management-system-myg0.onrender.com';
 
 const ReviewItem = ({ item, publisherId, userId, handlers, isReply = false }) => {
   const {

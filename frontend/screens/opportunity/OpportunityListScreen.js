@@ -11,7 +11,7 @@ import api from '../../api';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
-const BASE_URL = 'https://volunteer-management-system-qux8.onrender.com';
+const BASE_URL = 'https://volunteer-management-system-myg0.onrender.com';
 
 const CATEGORIES = [
   { key: '', label: 'All', icon: '🌐' },

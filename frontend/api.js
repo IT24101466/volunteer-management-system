@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'https://volunteer-management-system-qux8.onrender.com';
+const BASE_URL = 'https://volunteer-management-system-myg0.onrender.com';
 
 const api = axios.create({
   baseURL: BASE_URL,
