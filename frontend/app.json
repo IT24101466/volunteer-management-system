@@ -37,13 +37,14 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "c222c7bb-5202-4d33-9a2f-5bd81a9a28c5"
-      }
-    },
     "plugins": [
       "@react-native-community/datetimepicker"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "1d31d37e-b79b-49b3-980e-76d230c45017"
+      }
+    },
+    "owner": "adeesha_akeeth2"
   }
 }
