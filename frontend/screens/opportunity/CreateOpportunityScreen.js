@@ -1,90 +1,267 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ScrollView, Alert } from 'react-native';
-import axios from 'axios';
-import API_URL from '../../api';
+import {
+  View, Text, TextInput, TouchableOpacity,
+  StyleSheet, ScrollView, ActivityIndicator, Image, Platform,
+  KeyboardAvoidingView
+} from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
+import { useToast } from '../../components/Toast';
+import api from '../../api';
+
+const fmt = (d) => d ? new Date(d).toDateString() : null;
+const today = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
 
 const CreateOpportunityScreen = ({ navigation }) => {
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    organization: '',
-    location: '',
-    startDate: '',
-    endDate: '',
-    spotsAvailable: '',
-    category: 'education',
-    responsibleName: '',
-    responsibleEmail: '',
-    responsiblePhone: '',
-  });
+  const toast = useToast();
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [organization, setOrganization] = useState('');
+  const [location, setLocation] = useState('');
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [spotsAvailable, setSpotsAvailable] = useState('');
+  const [category, setCategory] = useState('other');
+  const [responsibleName, setResponsibleName] = useState('');
+  const [responsibleEmail, setResponsibleEmail] = useState('');
+  const [contactCountryCode, setContactCountryCode] = useState('+94');
+  const [contactPhone, setContactPhone] = useState('');
+  const [bannerImage, setBannerImage] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState(null);
 
-  const handleSubmit = async () => {
-    try {
-      await axios.post(`${API_URL}/opportunities`, formData);
-      Alert.alert('Success', 'Opportunity created successfully');
-      navigation.goBack();
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Failed to create opportunity');
+  const categories = ['education', 'environment', 'health', 'community', 'animals', 'other'];
+
+  const handleContactCodeChange = (text) => {
+    let cleaned = text.replace(/[^0-9+]/g, '');
+    if (!cleaned.startsWith('+')) cleaned = '+' + cleaned.replace(/\+/g, '');
+    else cleaned = '+' + cleaned.slice(1).replace(/\+/g, '');
+    setContactCountryCode(cleaned || '+');
+  };
+
+  const handleContactPhoneChange = (text) => setContactPhone(text.replace(/[^0-9]/g, ''));
+
+  const openDatePicker = (target) => { setPickerTarget(target); setShowPicker(true); };
+
+  const onDateChange = (event, selected) => {
+    setShowPicker(Platform.OS === 'ios');
+    if (event.type === 'dismissed') return;
+    if (selected) {
+      const iso = selected.toISOString().substring(0, 10);
+      if (pickerTarget === 'start') setStartDate(iso);
+      else setEndDate(iso);
     }
   };
 
+  const pickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) { toast.error('Permission Required', 'Please allow photo access'); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true, aspect: [16, 9], quality: 0.7
+    });
+    if (!result.canceled) setBannerImage(result.assets[0]);
+  };
+
+  const handleCreate = async () => {
+    if (!title || !description || !location || !startDate || !endDate || !spotsAvailable) {
+      toast.error('Missing Fields', 'Please fill in all required fields');
+      return;
+    }
+    if (new Date(startDate) < today()) {
+      toast.error('Invalid Start Date', 'Start date cannot be in the past.');
+      return;
+    }
+    if (new Date(startDate) >= new Date(endDate)) {
+      toast.error('Invalid Dates', 'End date must be after start date');
+      return;
+    }
+    if (responsibleName.trim() && !responsibleEmail.trim() && !contactPhone.trim()) {
+      toast.error('Contact Required', 'If a responsible person is named, please provide at least an email or phone number');
+      return;
+    }
+    if (responsibleEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(responsibleEmail)) {
+      toast.error('Invalid Email', 'Please enter a valid contact email address');
+      return;
+    }
+    if (contactPhone.trim() && contactCountryCode === '+94' && contactPhone.trim().length !== 9) {
+      toast.error('Invalid Phone', 'Sri Lanka (+94) numbers must have exactly 9 digits after the country code');
+      return;
+    }
+    setLoading(true);
+    try {
+      const responsiblePhone = contactPhone ? `${contactCountryCode}${contactPhone}` : '';
+      const payload = {
+        title, description, organization, location,
+        startDate, endDate, spotsAvailable, category,
+        responsibleName, responsibleEmail, responsiblePhone
+      };
+      if (bannerImage) {
+        const formData = new FormData();
+        Object.entries(payload).forEach(([k, v]) => formData.append(k, v));
+        const filename = bannerImage.uri.split('/').pop();
+        const match = /\.(\w+)$/.exec(filename);
+        formData.append('bannerImage', { uri: bannerImage.uri, name: filename, type: match ? `image/${match[1]}` : 'image/jpeg' });
+        await api.post('/api/opportunities', formData);
+      } else {
+        await api.post('/api/opportunities', payload);
+      }
+      toast.success('Opportunity Created!', 'Your opportunity has been posted successfully.');
+      setTimeout(() => navigation.goBack(), 1000);
+    } catch (error) {
+      toast.error('Error', error.response?.data?.message || error.message || 'Failed to create opportunity');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const minDate = today();
+
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.header}>Create Opportunity</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Title"
-        value={formData.title}
-        onChangeText={(text) => setFormData({ ...formData, title: text })}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Description"
-        multiline
-        value={formData.description}
-        onChangeText={(text) => setFormData({ ...formData, description: text })}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Organization"
-        value={formData.organization}
-        onChangeText={(text) => setFormData({ ...formData, organization: text })}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Location"
-        value={formData.location}
-        onChangeText={(text) => setFormData({ ...formData, location: text })}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Start Date (YYYY-MM-DD)"
-        value={formData.startDate}
-        onChangeText={(text) => setFormData({ ...formData, startDate: text })}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="End Date (YYYY-MM-DD)"
-        value={formData.endDate}
-        onChangeText={(text) => setFormData({ ...formData, endDate: text })}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Spots Available"
-        keyboardType="numeric"
-        value={formData.spotsAvailable}
-        onChangeText={(text) => setFormData({ ...formData, spotsAvailable: text })}
-      />
-      <Button title="Create" onPress={handleSubmit} />
-    </ScrollView>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      <ScrollView style={styles.container}>
+        <Text style={styles.heading}>Post New Opportunity</Text>
+
+        <Text style={styles.label}>Title *</Text>
+        <TextInput style={styles.input} placeholderTextColor="#999" placeholder="e.g. Beach Cleanup Drive" value={title} onChangeText={setTitle} />
+
+        <Text style={styles.label}>Description *</Text>
+        <TextInput style={styles.textArea} placeholderTextColor="#999" placeholder="Describe what volunteers will be doing..." value={description} onChangeText={setDescription} multiline numberOfLines={4} />
+
+        <Text style={styles.label}>Organization / Company Name <Text style={styles.optional}>(optional)</Text></Text>
+        <TextInput style={styles.input} placeholderTextColor="#999" placeholder="e.g. Green Earth Foundation" value={organization} onChangeText={setOrganization} />
+
+        <Text style={styles.label}>Location *</Text>
+        <TextInput style={styles.input} placeholderTextColor="#999" placeholder="e.g. Colombo, Sri Lanka" value={location} onChangeText={setLocation} />
+
+        <Text style={styles.label}>Event Dates *</Text>
+        <TouchableOpacity style={styles.dateButton} onPress={() => openDatePicker('start')}>
+          <Text style={[styles.dateButtonText, !startDate && styles.datePlaceholder]}>
+            {startDate ? `Start: ${fmt(startDate)}` : 'Select Start Date *'}
+          </Text>
+          <Ionicons name="calendar-outline" size={18} color="#888" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.dateButton} onPress={() => openDatePicker('end')}>
+          <Text style={[styles.dateButtonText, !endDate && styles.datePlaceholder]}>
+            {endDate ? `End: ${fmt(endDate)}` : 'Select End Date *'}
+          </Text>
+          <Ionicons name="calendar-outline" size={18} color="#888" />
+        </TouchableOpacity>
+
+        {showPicker && (
+          <DateTimePicker
+            value={pickerTarget === 'start' ? (startDate ? new Date(startDate) : minDate) : (endDate ? new Date(endDate) : (startDate ? new Date(startDate) : minDate))}
+            mode="date" display="default"
+            minimumDate={pickerTarget === 'start' ? minDate : (startDate ? new Date(startDate) : minDate)}
+            onChange={onDateChange}
+          />
+        )}
+
+        <Text style={styles.label}>Spots Available *</Text>
+        <TextInput style={styles.input} placeholderTextColor="#999" placeholder="e.g. 20" value={spotsAvailable} onChangeText={setSpotsAvailable} keyboardType="numeric" />
+
+        <Text style={styles.label}>Contact Information <Text style={styles.optional}>(optional)</Text></Text>
+
+        <Text style={styles.subLabel}>Responsible Person's Name</Text>
+        <TextInput style={styles.input} placeholderTextColor="#999" placeholder="Full name" value={responsibleName} onChangeText={setResponsibleName} />
+
+        <Text style={styles.subLabel}>Email Address</Text>
+        <TextInput
+          style={[styles.input, responsibleEmail.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(responsibleEmail) && styles.inputError]}
+          placeholderTextColor="#999"
+          placeholder="contact@example.com"
+          value={responsibleEmail}
+          onChangeText={setResponsibleEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        {responsibleEmail.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(responsibleEmail) && (
+          <Text style={styles.fieldError}>Enter a valid email address</Text>
+        )}
+
+        <Text style={styles.subLabel}>Phone Number</Text>
+        <View style={styles.phoneRow}>
+          <TextInput
+            style={styles.codeInput}
+            value={contactCountryCode}
+            onChangeText={handleContactCodeChange}
+            keyboardType="phone-pad"
+            maxLength={5}
+            placeholder="+94"
+            placeholderTextColor="#aaa"
+          />
+          <TextInput
+            style={styles.phoneInput}
+            placeholder={contactCountryCode === '+94' ? '9 digits e.g. 771234567' : 'Phone number'}
+            placeholderTextColor="#999"
+            value={contactPhone}
+            onChangeText={handleContactPhoneChange}
+            keyboardType="number-pad"
+            maxLength={contactCountryCode === '+94' ? 9 : 15}
+          />
+        </View>
+        {contactCountryCode === '+94' && contactPhone.length > 0 && contactPhone.length !== 9 && (
+          <Text style={styles.fieldError}>+94 numbers need exactly 9 digits</Text>
+        )}
+
+        <Text style={styles.label}>Category</Text>
+        <View style={styles.categoryContainer}>
+          {categories.map((cat) => (
+            <TouchableOpacity key={cat} style={[styles.categoryButton, category === cat && styles.categoryButtonActive]} onPress={() => setCategory(cat)}>
+              <Text style={[styles.categoryText, category === cat && styles.categoryTextActive]}>{cat}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={styles.label}>Banner Image <Text style={styles.optional}>(optional)</Text></Text>
+        <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
+          <Ionicons name={bannerImage ? 'checkmark-circle' : 'camera-outline'} size={20} color="#2e86de" style={{ marginRight: 8 }} />
+          <Text style={styles.imagePickerText}>{bannerImage ? 'Image Selected — Tap to change' : 'Pick Banner Image'}</Text>
+        </TouchableOpacity>
+        {bannerImage && <Image source={{ uri: bannerImage.uri }} style={styles.previewImage} />}
+
+        <TouchableOpacity style={styles.button} onPress={handleCreate} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Create Opportunity</Text>}
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.cancelButtonText}>Cancel</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
-  header: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
-  input: { borderBottomWidth: 1, borderBottomColor: '#ccc', marginBottom: 15, padding: 10 },
+  container: { flex: 1, backgroundColor: '#f0f4f8', padding: 15 },
+  heading: { fontSize: 24, fontWeight: 'bold', color: '#333', marginBottom: 20, textAlign: 'center' },
+  input: { backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 12, fontSize: 16, borderWidth: 1, borderColor: '#ddd', color: '#333' },
+  inputError: { borderColor: '#e74c3c' },
+  fieldError: { color: '#e74c3c', fontSize: 12, marginTop: -8, marginBottom: 10 },
+  textArea: { backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 12, fontSize: 16, borderWidth: 1, borderColor: '#ddd', minHeight: 100, textAlignVertical: 'top', color: '#333' },
+  label: { fontSize: 15, color: '#333', marginBottom: 6, fontWeight: 'bold', marginTop: 8 },
+  subLabel: { fontSize: 13, color: '#555', marginBottom: 5, marginTop: 2, fontWeight: '600' },
+  optional: { fontWeight: 'normal', color: '#aaa', fontSize: 12 },
+  dateButton: { backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: '#ddd', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  dateButtonText: { fontSize: 15, color: '#333', flex: 1 },
+  datePlaceholder: { color: '#999' },
+  phoneRow: { flexDirection: 'row', marginBottom: 12, gap: 8 },
+  codeInput: { backgroundColor: '#fff', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#ddd', color: '#333', fontWeight: 'bold', fontSize: 15, minWidth: 80, textAlign: 'center' },
+  phoneInput: { flex: 1, backgroundColor: '#fff', borderRadius: 10, padding: 14, fontSize: 16, borderWidth: 1, borderColor: '#ddd', color: '#333' },
+  categoryContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  categoryButton: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#2e86de' },
+  categoryButtonActive: { backgroundColor: '#2e86de' },
+  categoryText: { color: '#2e86de', fontWeight: 'bold', fontSize: 13 },
+  categoryTextActive: { color: '#fff' },
+  imagePickerButton: { backgroundColor: '#f0f4f8', borderWidth: 2, borderColor: '#2e86de', borderStyle: 'dashed', borderRadius: 10, padding: 20, alignItems: 'center', marginBottom: 15, flexDirection: 'row', justifyContent: 'center' },
+  imagePickerText: { color: '#2e86de', fontWeight: 'bold', fontSize: 15 },
+  previewImage: { width: '100%', height: 200, borderRadius: 10, marginBottom: 15 },
+  button: { backgroundColor: '#2e86de', borderRadius: 10, padding: 15, alignItems: 'center', marginBottom: 10, marginTop: 10 },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  cancelButton: { borderWidth: 1, borderColor: '#e74c3c', borderRadius: 10, padding: 15, alignItems: 'center', marginBottom: 30 },
+  cancelButtonText: { color: '#e74c3c', fontWeight: 'bold', fontSize: 16 }
 });
 
 export default CreateOpportunityScreen;
