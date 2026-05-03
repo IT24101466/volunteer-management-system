@@ -1,6 +1,6 @@
 # Kind Hands — Volunteer Management System
 
-A full-stack mobile application that connects volunteers with organizations, streamlines opportunity management, fundraising, and contribution tracking — all in one platform.
+A full-stack mobile application that connects volunteers with opportunities, streamlines opportunity management, fundraising, and contribution tracking — all in one platform.
 
 ---
 
