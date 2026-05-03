@@ -92,7 +92,7 @@ const ApplyScreen = ({ route, navigation }) => {
         toast.success('Application Updated!', 'Your changes have been saved.');
       } else {
         await api.post('/api/applications', formData);
-        toast.success('Application Submitted!', 'Your application is under review. Check status under Profile → My Applications.');
+        toast.success('You\'ve Joined!', 'You have joined this opportunity. Check your status under Profile → My Applications.');
       }
       setTimeout(() => navigation.goBack(), 1500);
     } catch (error) {

@@ -43,7 +43,6 @@ import ProfileScreen from './screens/profile/ProfileScreen';
 // Impact Screens
 import ImpactScreen from './screens/impact/ImpactScreen';
 import OngoingOpportunitiesScreen from './screens/impact/OngoingOpportunitiesScreen';
-import PastVolunteeringScreen from './screens/impact/PastVolunteeringScreen';
 
 // Profile Extra Screens
 import MyLikesCommentsScreen from './screens/profile/MyLikesCommentsScreen';
@@ -67,9 +66,13 @@ import FavouriteDetailScreen from './screens/favourites/FavouriteDetailScreen';
 import PublisherProfileScreen from './screens/publisher/PublisherProfileScreen';
 import FindPublishersScreen from './screens/publisher/FindPublishersScreen';
 import PublisherCommentsScreen from './screens/publisher/PublisherCommentsScreen';
+import FollowingScreen from './screens/publisher/FollowingScreen';
 
 // Contribution Screens
 import AllContributionsScreen from './screens/contribution/AllContributionsScreen';
+
+// Support Screens
+import ApplicationGroupsScreen from './screens/support/ApplicationGroupsScreen';
 
 // Profile Extra Screens (new)
 import EditProfileScreen from './screens/profile/EditProfileScreen';
@@ -126,7 +129,6 @@ const ImpactStack = () => (
   <Stack.Navigator>
     <Stack.Screen name="ImpactMain" component={ImpactScreen} options={{ title: 'My Impact' }} />
     <Stack.Screen name="OngoingOpportunities" component={OngoingOpportunitiesScreen} options={{ title: 'Active Volunteering' }} />
-    <Stack.Screen name="PastVolunteering" component={PastVolunteeringScreen} options={{ title: 'Past Volunteering' }} />
   </Stack.Navigator>
 );
 
@@ -210,9 +212,12 @@ const ProfileStack = () => (
     <Stack.Screen name="MyLikesComments" component={MyLikesCommentsScreen} options={{ title: 'My Likes & Comments' }} />
     <Stack.Screen name="PublisherProfile" component={PublisherProfileScreen} options={{ title: 'Publisher Profile' }} />
     <Stack.Screen name="PublisherComments" component={PublisherCommentsScreen} options={{ title: 'Comments & Reviews' }} />
+    <Stack.Screen name="FindPublishers" component={FindPublishersScreen} options={({ route }) => ({ title: route.params?.followedOnly ? 'Following' : 'Find Publishers' })} />
+    <Stack.Screen name="Following" component={FollowingScreen} options={{ title: 'Following' }} />
     <Stack.Screen name="AllContributions" component={AllContributionsScreen} options={{ title: 'Verify Contributions' }} />
     <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Edit Profile' }} />
     <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ title: 'Change Password' }} />
+    <Stack.Screen name="ApplicationGroups" component={ApplicationGroupsScreen} options={{ title: 'Application Groups' }} />
     <Stack.Screen name="OpportunityDetail" component={OpportunityDetailScreen} options={{ title: 'Details' }} />
     <Stack.Screen name="MyFundraisers" component={MyFundraisersScreen} options={{ title: 'My Fundraisers' }} />
     <Stack.Screen name="CreateFundraiser" component={CreateFundraiserScreen} options={{ title: 'Create Fundraiser' }} />

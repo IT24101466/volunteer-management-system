@@ -33,35 +33,18 @@ const MyApplicationsScreen = ({ navigation }) => {
 
   const onRefresh = () => { setRefreshing(true); fetchApplications(); };
 
-  const handleWithdraw = (applicationId) => {
+  const handleLeave = (applicationId) => {
     confirm.show({
-      title: 'Withdraw Application',
-      message: 'Withdraw this application? This cannot be undone.',
-      confirmText: 'Withdraw',
+      title: 'Leave Opportunity',
+      message: 'Are you sure you want to leave this opportunity? This cannot be undone.',
+      confirmText: 'Leave',
       destructive: true,
       onConfirm: async () => {
         try {
           await api.delete(`/api/applications/${applicationId}`);
           fetchApplications();
         } catch (error) {
-          toast.error('Error', error.response?.data?.message || 'Failed to withdraw');
-        }
-      }
-    });
-  };
-
-  const handleResign = (applicationId) => {
-    confirm.show({
-      title: 'Resign from Opportunity',
-      message: 'Are you sure you want to resign? This action cannot be undone.',
-      confirmText: 'Resign',
-      destructive: true,
-      onConfirm: async () => {
-        try {
-          await api.delete(`/api/applications/${applicationId}`);
-          fetchApplications();
-        } catch (error) {
-          toast.error('Error', error.response?.data?.message || 'Failed to resign');
+          toast.error('Error', error.response?.data?.message || 'Failed to leave');
         }
       }
     });
@@ -78,7 +61,7 @@ const MyApplicationsScreen = ({ navigation }) => {
 
   const statusLabel = (status) => {
     switch (status) {
-      case 'approved': return 'Accepted';
+      case 'approved': return 'Joined';
       case 'completed': return 'Completed';
       case 'rejected': return 'Rejected';
       default: return 'Pending';
@@ -129,7 +112,7 @@ const MyApplicationsScreen = ({ navigation }) => {
         </TouchableOpacity>
       )}
 
-      {item.status === 'pending' && (
+      {item.status === 'approved' && (
         <View style={styles.pendingActions}>
           <TouchableOpacity
             style={styles.editButton}
@@ -140,19 +123,13 @@ const MyApplicationsScreen = ({ navigation }) => {
             })}
           >
             <Ionicons name="pencil-outline" size={14} color="#2e86de" style={{ marginRight: 4 }} />
-            <Text style={styles.editButtonText}>Edit Application</Text>
+            <Text style={styles.editButtonText}>Edit</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.withdrawButton} onPress={() => handleWithdraw(item._id)}>
-            <Text style={styles.withdrawButtonText}>Withdraw</Text>
+          <TouchableOpacity style={styles.withdrawButton} onPress={() => handleLeave(item._id)}>
+            <Ionicons name="exit-outline" size={14} color="#e74c3c" style={{ marginRight: 4 }} />
+            <Text style={styles.withdrawButtonText}>Leave</Text>
           </TouchableOpacity>
         </View>
-      )}
-
-      {item.status === 'approved' && (
-        <TouchableOpacity style={styles.resignButton} onPress={() => handleResign(item._id)}>
-          <Ionicons name="exit-outline" size={14} color="#e74c3c" style={{ marginRight: 4 }} />
-          <Text style={styles.resignButtonText}>Resign</Text>
-        </TouchableOpacity>
       )}
     </View>
   );
@@ -164,14 +141,14 @@ const MyApplicationsScreen = ({ navigation }) => {
       <Text style={styles.heading}>My Applications</Text>
 
       <View style={styles.filterContainer}>
-        {['all', 'pending', 'approved', 'completed', 'rejected'].map((f) => (
+        {['all', 'approved', 'completed', 'rejected'].map((f) => (
           <TouchableOpacity
             key={f}
             style={[styles.filterTab, filter === f && styles.filterTabActive]}
             onPress={() => setFilter(f)}
           >
             <Text style={[styles.filterTabText, filter === f && styles.filterTabTextActive]}>
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+              {f === 'approved' ? 'Joined' : f.charAt(0).toUpperCase() + f.slice(1)}
             </Text>
           </TouchableOpacity>
         ))}

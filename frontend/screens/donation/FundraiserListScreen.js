@@ -38,16 +38,13 @@ const FundraiserListScreen = ({ navigation }) => {
     const pct = item.targetAmount > 0 ? Math.min(100, Math.round((item.collectedAmount / item.targetAmount) * 100)) : 0;
     const isCompleted = item.status === 'completed';
     const isCreator = item.createdBy?._id === user?.id || item.createdBy?.id === user?.id || item.createdBy === user?.id;
-    const isStandalone = !item.opportunity;
 
     return (
       <TouchableOpacity
         style={[styles.card, isCompleted && styles.cardCompleted]}
         onPress={() => {
-          if (isStandalone && isCreator) {
+          if (isCreator) {
             navigation.navigate('ManageMyFundraiser', { fundraiserId: item._id });
-          } else if (item.opportunity?._id) {
-            navigation.navigate('OpportunityDetailFromDonations', { opportunityId: item.opportunity._id });
           }
         }}
         activeOpacity={0.8}
@@ -64,7 +61,7 @@ const FundraiserListScreen = ({ navigation }) => {
           <View style={styles.cardTopRow}>
             {item.opportunity?.category
               ? <View style={styles.categoryBadge}><Text style={styles.categoryText}>{item.opportunity.category}</Text></View>
-              : <View style={styles.categoryBadge}><Text style={styles.categoryText}>Standalone</Text></View>
+              : <View />
             }
             {isCompleted
               ? <View style={styles.completedBadge}><Text style={styles.completedText}>Completed</Text></View>

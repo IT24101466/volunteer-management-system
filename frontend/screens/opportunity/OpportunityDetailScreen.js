@@ -153,17 +153,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [isCreator, setIsCreator] = useState(false);
   const [isPast, setIsPast] = useState(false);
-  // ── APPLICATION MANAGEMENT state ────────────────────────────────────────────
-  const [myApplicationStatus, setMyApplicationStatus] = useState(null); // null | 'pending' | 'approved' | 'rejected' | 'completed'
-  // ────────────────────────────────────────────────────────────────────────────
-
-  const [myContributions, setMyContributions] = useState([]);
-
-  // Log contribution modal
-  const [contribModal, setContribModal] = useState(false);
-  const [contribHours, setContribHours] = useState('');
-  const [contribDesc, setContribDesc] = useState('');
-  const [contribSubmitting, setContribSubmitting] = useState(false);
+  const [myApplicationStatus, setMyApplicationStatus] = useState(null);
 
   const [donorsModal, setDonorsModal] = useState(null);
   const [donors, setDonors] = useState([]);
@@ -224,25 +214,12 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
       setAverageRating(results[2].data.averageRating);  // RATING — overall average
       setRatingCount(results[2].data.ratingCount);      // RATING — total number of ratings
 
-      // ── APPLICATION MANAGEMENT — check if user has already applied ────────────
       if (user && results[3]) {
         const myApp = (results[3].data || []).find(a =>
           a.opportunity?._id === opportunityId || a.opportunity === opportunityId
         );
-        const status = myApp?.status || null;
-        setMyApplicationStatus(status); // drives Apply button state and contribution card visibility
-
-        if (status === 'approved') {
-          try {
-            const contribRes = await api.get('/api/contributions/my-opportunities');
-            const match = (contribRes.data || []).find(item =>
-              item.opportunity?._id === opportunityId || item.opportunity === opportunityId
-            );
-            setMyContributions(match?.contributions || []);
-          } catch {}
-        }
+        setMyApplicationStatus(myApp?.status || null);
       }
-      // ────────────────────────────────────────────────────────────────────────
     } catch {
       toast.error('Error', 'Failed to load opportunity details');
     } finally {
@@ -473,35 +450,6 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
       setEditSubmitting(false);
     }
   };
-//////
-  const handleLogContribution = async () => {
-    if (!contribHours || isNaN(contribHours) || Number(contribHours) < 0.5) {
-      toast.warning('Invalid', 'Please enter at least 0.5 hours');
-      return;
-    }
-    setContribSubmitting(true);
-    try {
-      await api.post('/api/contributions', {
-        opportunityId,
-        hours: Number(contribHours),
-        description: contribDesc
-      });
-      toast.success('Submitted!', 'Your contribution has been sent for verification.');
-      setContribModal(false);
-      setContribHours('');
-      setContribDesc('');
-      const contribRes = await api.get('/api/contributions/my-opportunities');
-      const match = (contribRes.data || []).find(item =>
-        item.opportunity?._id === opportunityId || item.opportunity === opportunityId
-      );
-      setMyContributions(match?.contributions || []);
-    } catch (error) {
-      toast.error('Error', error.response?.data?.message || 'Failed to submit');
-    } finally {
-      setContribSubmitting(false);
-    }
-  };
-
   const openDonors = async (fundraiser) => {
     setDonorsModal(fundraiser);
     setDonorsLoading(true);
@@ -672,12 +620,8 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
               onPress={() => {
                 if (isPast) { toast.info('Ended', 'This opportunity has already ended.'); return; }
                 if (opportunity.status === 'closed') { toast.info('Closed', 'Applications are closed for this opportunity.'); return; }
-                if (myApplicationStatus === 'pending') {
-                  toast.info('Already Applied', 'Your application is under review. Check My Applications for status.');
-                  return;
-                }
                 if (myApplicationStatus === 'approved') {
-                  toast.info('Already Accepted', 'You have already been accepted for this opportunity.');
+                  toast.info('Already Joined', "You've already joined this opportunity.");
                   return;
                 }
                 navigation.navigate('Apply', { opportunity }); // navigates to ApplyScreen (application submission)
@@ -698,40 +642,6 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
         )}
       </View>
       {/* ────────────────────────────────────────────────────────────────────── */}
-
-      {/* Contribution Stats — shown to accepted volunteers */}
-      {myApplicationStatus === 'approved' && (
-        <View style={styles.card}>
-          <View style={styles.contribHeader}>
-            <Ionicons name="trophy-outline" size={18} color="#27ae60" style={{ marginRight: 6 }} />
-            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>My Contribution</Text>
-          </View>
-          <View style={styles.contribStatsRow}>
-            <View style={styles.contribStatBox}>
-              <Text style={styles.contribStatValue}>
-                {myContributions.filter(c => c.status === 'verified').reduce((s, c) => s + c.hours, 0)}
-              </Text>
-              <Text style={styles.contribStatLabel}>hrs verified</Text>
-            </View>
-            <View style={styles.contribStatBox}>
-              <Text style={[styles.contribStatValue, { color: '#f39c12' }]}>
-                {myContributions.filter(c => c.status === 'pending').length}
-              </Text>
-              <Text style={styles.contribStatLabel}>pending</Text>
-            </View>
-            <View style={styles.contribStatBox}>
-              <Text style={[styles.contribStatValue, { color: '#9b59b6' }]}>
-                {myContributions.filter(c => c.status === 'verified').reduce((s, c) => s + c.hours, 0) * 10}
-              </Text>
-              <Text style={styles.contribStatLabel}>pts earned</Text>
-            </View>
-          </View>
-          <TouchableOpacity style={styles.logContribBtn} onPress={() => { setContribHours(''); setContribDesc(''); setContribModal(true); }}>
-            <Ionicons name="add-circle-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
-            <Text style={styles.logContribBtnText}>Log Contribution Hours</Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
       {/* ── RATING — star rating card (visible to logged-in non-creators) ── */}
       {user && !isCreator && (
@@ -810,51 +720,6 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
           ))
         )}
       </View>
-
-      {/* Log Contribution Modal */}
-      <Modal visible={contribModal} transparent animationType="slide" onRequestClose={() => setContribModal(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setContribModal(false)}>
-          <View style={styles.editModal} onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.formTitle}>Log Contribution</Text>
-            <Text style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>{opportunity?.title}</Text>
-            <Text style={styles.contribInputLabel}>Hours *</Text>
-            <TextInput
-              style={styles.contribInput}
-              placeholder="e.g. 2.5"
-              placeholderTextColor="#aaa"
-              value={contribHours}
-              onChangeText={setContribHours}
-              keyboardType="decimal-pad"
-            />
-            <Text style={styles.contribInputHint}>Enter total hours as a number — decimals accepted (e.g. 1.5 = 1 hr 30 min).</Text>
-            <Text style={styles.contribInputLabel}>Description (optional)</Text>
-            <TextInput
-              style={[styles.contribInput, { minHeight: 70, textAlignVertical: 'top' }]}
-              placeholder="What did you do?"
-              placeholderTextColor="#aaa"
-              value={contribDesc}
-              onChangeText={setContribDesc}
-              multiline
-              numberOfLines={3}
-            />
-            <View style={styles.contribPointsPreview}>
-              <Ionicons name="trophy-outline" size={14} color="#9b59b6" />
-              <Text style={styles.contribPointsText}>
-                {' '}Earns <Text style={{ fontWeight: 'bold', color: '#9b59b6' }}>{Math.floor(Number(contribHours || 0) * 10)} pts</Text> once verified
-              </Text>
-            </View>
-            <View style={styles.formButtons}>
-              <TouchableOpacity style={styles.submitCommentButton} onPress={handleLogContribution} disabled={contribSubmitting}>
-                {contribSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitCommentText}>Submit</Text>}
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.cancelCommentButton} onPress={() => setContribModal(false)}>
-                <Text style={styles.cancelCommentText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
 
       {/* ── COMMENTS — edit comment modal ── */}
       <Modal visible={!!editingComment} transparent animationType="slide" onRequestClose={() => setEditingComment(null)}>
@@ -1095,19 +960,6 @@ const styles = StyleSheet.create({
   donorMessage: { fontSize: 13, color: '#888', fontStyle: 'italic', marginTop: 2 },
   donorDate: { fontSize: 11, color: '#aaa', marginTop: 3 },
   donorAmount: { fontSize: 16, fontWeight: 'bold', color: '#27ae60' },
-  // Contribution stats (accepted volunteer view)
-  contribHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  contribStatsRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
-  contribStatBox: { flex: 1, backgroundColor: '#f0fff4', borderRadius: 10, padding: 10, alignItems: 'center' },
-  contribStatValue: { fontSize: 22, fontWeight: 'bold', color: '#27ae60' },
-  contribStatLabel: { fontSize: 10, color: '#888', marginTop: 2 },
-  logContribBtn: { backgroundColor: '#27ae60', borderRadius: 10, padding: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  logContribBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-  contribInputLabel: { fontSize: 13, fontWeight: 'bold', color: '#555', marginBottom: 6 },
-  contribInputHint: { fontSize: 11, color: '#999', marginTop: -10, marginBottom: 14, lineHeight: 16 },
-  contribInput: { backgroundColor: '#f8f9fa', borderRadius: 10, padding: 14, fontSize: 15, borderWidth: 1, borderColor: '#ddd', color: '#333', marginBottom: 14 },
-  contribPointsPreview: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8f4ff', borderRadius: 10, padding: 12, marginBottom: 16 },
-  contribPointsText: { fontSize: 13, color: '#555' }
 });
 
 export default OpportunityDetailScreen;

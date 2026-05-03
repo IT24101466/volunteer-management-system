@@ -53,7 +53,6 @@ const AllContributionsScreen = () => {
 
   const counts = {
     all: contributions.length,
-    pending: contributions.filter(c => c.status === 'pending').length,
     verified: contributions.filter(c => c.status === 'verified').length,
     rejected: contributions.filter(c => c.status === 'rejected').length
   };
@@ -66,7 +65,7 @@ const AllContributionsScreen = () => {
     <View style={styles.container}>
       {/* Filter tabs */}
       <View style={styles.filterRow}>
-        {['all', 'pending', 'verified', 'rejected'].map(f => (
+        {['all', 'verified', 'rejected'].map(f => (
           <TouchableOpacity
             key={f}
             style={[styles.filterBtn, filter === f && styles.filterBtnActive]}
@@ -178,18 +177,8 @@ const AllContributionsScreen = () => {
                   </View>
                 )}
 
-                {selected.status === 'pending' && (
+                {selected.status === 'verified' && (
                   <View style={styles.modalActions}>
-                    <TouchableOpacity
-                      style={styles.verifyBtn}
-                      onPress={() => handleAction(selected._id, 'verified')}
-                      disabled={!!actionLoading[selected._id]}
-                    >
-                      {actionLoading[selected._id] === 'verified'
-                        ? <ActivityIndicator size="small" color="#fff" />
-                        : <Text style={styles.actionBtnText}>✅ Verify</Text>
-                      }
-                    </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.rejectBtn}
                       onPress={() => handleAction(selected._id, 'rejected')}
@@ -197,7 +186,7 @@ const AllContributionsScreen = () => {
                     >
                       {actionLoading[selected._id] === 'rejected'
                         ? <ActivityIndicator size="small" color="#fff" />
-                        : <Text style={styles.actionBtnText}>❌ Reject</Text>
+                        : <Text style={styles.actionBtnText}>❌ Reject Contribution</Text>
                       }
                     </TouchableOpacity>
                   </View>

@@ -82,7 +82,6 @@ const ImpactScreen = ({ navigation }) => {
   const [leaderboard, setLeaderboard] = useState(null);
   const [history, setHistory] = useState([]);
   const [goals, setGoals] = useState([]);
-  const [pendingContribs, setPendingContribs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -99,19 +98,16 @@ const ImpactScreen = ({ navigation }) => {
 
   const fetchData = async () => {
     try {
-      const [ptRes, lbRes, histRes, goalsRes, contribRes] = await Promise.all([
+      const [ptRes, lbRes, histRes, goalsRes] = await Promise.all([
         api.get('/api/points/me'),
         api.get('/api/points/leaderboard'),
         api.get('/api/points/history'),
-        api.get('/api/goals/my'),
-        api.get('/api/contributions/my')
+        api.get('/api/goals/my')
       ]);
       setPoints(ptRes.data);
       setLeaderboard(lbRes.data);
       setHistory(histRes.data || []);
       setGoals(goalsRes.data || []);
-      const allContribs = contribRes.data || [];
-      setPendingContribs(allContribs.filter(c => c.status === 'pending'));
     } catch {
       toast.error('Error', 'Failed to load impact data');
     } finally {
@@ -337,30 +333,6 @@ const ImpactScreen = ({ navigation }) => {
             ))
           )}
         </View>
-
-        {/* ── Pending Contributions ── */}
-        {pendingContribs.length > 0 && (
-          <View style={styles.historyCard}>
-            <View style={styles.historyHeader}>
-              <Text style={styles.historyTitle}>⏳ Pending Contributions</Text>
-              <Text style={styles.historySub}>{pendingContribs.length} awaiting verification</Text>
-            </View>
-            {pendingContribs.map((item, i) => (
-              <View key={item._id} style={[styles.historyRow, i === pendingContribs.length - 1 && { borderBottomWidth: 0 }]}>
-                <Text style={styles.historyIcon}>⏱</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.historyLabel} numberOfLines={2}>
-                    {item.hours}h — {item.opportunity?.title || 'Unknown opportunity'}
-                  </Text>
-                  <Text style={styles.historyDate}>{new Date(item.createdAt).toDateString()}</Text>
-                </View>
-                <View style={[styles.historyPoints, { backgroundColor: '#fff3cd' }]}>
-                  <Text style={[styles.historyPtsText, { color: '#856404' }]}>~{item.hours * 10} pts</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
 
         {/* ── Leaderboard ── */}
         <View style={styles.leaderboardCard}>

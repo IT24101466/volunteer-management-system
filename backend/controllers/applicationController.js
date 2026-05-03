@@ -57,7 +57,8 @@ const applyToOpportunity = async (req, res) => {
       applicantName: applicantName || '',
       motivation: motivation || '',
       expectedHours: expectedHours ? Number(expectedHours) : null,
-      hopingToGain: hopingToGain || ''
+      hopingToGain: hopingToGain || '',
+      status: 'approved'
     });
 
     // Notify the opportunity creator
@@ -65,13 +66,13 @@ const applyToOpportunity = async (req, res) => {
       await Notification.create({
         recipient: opportunity.createdBy,
         type: 'new_application',
-        message: `Application received for "${opportunity.title}"`,
+        message: `A volunteer has joined "${opportunity.title}"`,
         relatedId: opportunity._id
       });
     } catch {}
 
     res.status(201).json({
-      message: 'Application submitted successfully',
+      message: 'You have joined this opportunity!',
       application
     });
   } catch (error) {
@@ -119,8 +120,8 @@ const updateApplicationStatus = async (req, res) => {
   try {
     const { status } = req.body;
 
-    if (!['approved', 'rejected', 'completed'].includes(status)) {
-      return res.status(400).json({ message: 'Status must be approved, rejected, or completed' });
+    if (!['rejected', 'completed'].includes(status)) {
+      return res.status(400).json({ message: 'Status must be rejected or completed' });
     }
 
     const application = await Application.findById(req.params.id);
@@ -131,29 +132,11 @@ const updateApplicationStatus = async (req, res) => {
     application.status = status;
     await application.save();
 
-    // Auto-close opportunity when all slots filled
-    if (status === 'approved') {
-      try {
-        const opp = await Opportunity.findById(application.opportunity);
-        if (opp && opp.status === 'open') {
-          const approvedCount = await Application.countDocuments({
-            opportunity: opp._id,
-            status: { $in: ['approved', 'completed'] }
-          });
-          if (approvedCount >= opp.spotsAvailable) {
-            opp.status = 'closed';
-            await opp.save();
-          }
-        }
-      } catch {}
-    }
-
     // Notify the volunteer
     try {
       const opp = await Opportunity.findById(application.opportunity).select('title');
       const msgs = {
-        approved: `✅ Your application for "${opp?.title}" has been approved! You can now log contribution hours.`,
-        rejected: `Your application for "${opp?.title}" was not selected this time.`,
+        rejected: `Your participation in "${opp?.title}" has been removed by the organizer.`,
         completed: `🎖️ Your volunteering for "${opp?.title}" has been marked as completed! You earned 300 pts.`
       };
       if (msgs[status]) {
@@ -183,10 +166,6 @@ const updateApplication = async (req, res) => {
     if (application.volunteer.toString() !== req.user.id) {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    if (application.status !== 'pending') {
-      return res.status(400).json({ message: 'Only pending applications can be edited' });
-    }
-
     const { applicantName, phone, email, coverLetter, motivation, expectedHours, hopingToGain, useProfilePhoto } = req.body;
     if (applicantName !== undefined) application.applicantName = applicantName;
     if (phone !== undefined) application.phone = phone;

@@ -5,14 +5,13 @@ const path = require('path');
 const { protect } = require('../middleware/authMiddleware');
 const {
   submitContribution,
+  updateMyContribution,
+  deleteMyContribution,
   getMyContributions,
   getMyApprovedOpportunities,
-  getMyCompletedOpportunities,
   getContributionsForOpportunity,
   updateContributionStatus,
-  getAllContributionsForCreator,
-  updateMyContribution,
-  deleteMyContribution
+  getAllContributionsForCreator
 } = require('../controllers/contributionController');
 
 const storage = multer.diskStorage({
@@ -25,11 +24,10 @@ const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 router.post('/', protect, upload.single('proofImage'), submitContribution);
 router.get('/my', protect, getMyContributions);
 router.get('/my-opportunities', protect, getMyApprovedOpportunities);
-router.get('/my-past', protect, getMyCompletedOpportunities);
 router.get('/creator/all', protect, getAllContributionsForCreator);
 router.get('/opportunity/:opportunityId', protect, getContributionsForOpportunity);
 
-// Volunteer edit/delete own pending contribution
+// Volunteer edit/delete own contribution
 router.put('/my/:id', protect, upload.single('proofImage'), updateMyContribution);
 router.delete('/my/:id', protect, deleteMyContribution);
 

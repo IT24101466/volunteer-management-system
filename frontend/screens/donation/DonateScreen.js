@@ -48,7 +48,7 @@ const DonateScreen = ({ route, navigation }) => {
         formData.append('receiptImage', { uri: receiptImage.uri, name: filename, type: match ? `image/${match[1]}` : 'image/jpeg' });
       }
       await api.post('/api/donations', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      toast.success('Donation Submitted!', 'Your donation is pending review. Check the Donations tab to manage it.');
+      toast.success('Donation Recorded!', 'Your donation has been recorded. Check the Donations tab for details.');
       setTimeout(() => navigation.goBack(), 2000);
     } catch (error) {
       toast.error('Error', error.response?.data?.message || error.message || 'Failed to submit');
@@ -89,7 +89,7 @@ const DonateScreen = ({ route, navigation }) => {
             {receiptImage && <Image source={{ uri: receiptImage.uri }} style={styles.previewImage} resizeMode="cover" />}
 
             <View style={styles.infoBox}>
-              <Text style={styles.infoText}>Your donation will be marked as pending until the organizer reviews your receipt. You can edit or delete it while it's pending.</Text>
+              <Text style={styles.infoText}>Your donation will be recorded immediately. You can delete it if needed. The organizer may reject it if the receipt is invalid.</Text>
             </View>
 
             <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={submitting}>

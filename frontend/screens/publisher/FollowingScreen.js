@@ -1,0 +1,230 @@
+import React, { useState, useCallback } from 'react';
+import {
+  View, Text, FlatList, StyleSheet,
+  ActivityIndicator, TouchableOpacity,
+  RefreshControl, Image, ScrollView
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import api from '../../api';
+
+const BASE_URL = 'https://volunteer-management-system-myg0.onrender.com';
+
+const FollowingScreen = ({ navigation }) => {
+  const [feed, setFeed] = useState([]);
+  const [following, setFollowing] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      const [feedRes, followingRes] = await Promise.all([
+        api.get('/api/follows/feed').catch(() => ({ data: [] })),
+        api.get('/api/follows/mine').catch(() => ({ data: [] }))
+      ]);
+      setFeed(feedRes.data || []);
+      setFollowing(followingRes.data || []);
+    } catch {
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useFocusEffect(useCallback(() => { fetchData(); }, []));
+  const onRefresh = () => { setRefreshing(true); fetchData(); };
+
+  const handleVote = async (opp, vote) => {
+    try {
+      const res = await api.post('/api/votes', { targetId: opp._id, targetType: 'opportunity', vote });
+      setFeed(prev => prev.map(o =>
+        o._id === opp._id ? { ...o, likes: res.data.likes, dislikes: res.data.dislikes, userVote: res.data.userVote } : o
+      ));
+    } catch {}
+  };
+
+  const renderFeedItem = ({ item }) => {
+    const likeActive = item.userVote === 'like';
+    const dislikeActive = item.userVote === 'dislike';
+    const pubPhoto = item.createdBy?.profileImage ? `${BASE_URL}/${item.createdBy.profileImage}` : null;
+
+    return (
+      <TouchableOpacity
+        style={styles.feedCard}
+        onPress={() => navigation.navigate('OpportunityDetail', { opportunityId: item._id })}
+        activeOpacity={0.9}
+      >
+        {item.bannerImage ? (
+          <Image source={{ uri: `${BASE_URL}/${item.bannerImage}` }} style={styles.feedBanner} resizeMode="cover" />
+        ) : (
+          <View style={styles.feedBannerPlaceholder}><Text style={styles.feedBannerIcon}>🌍</Text></View>
+        )}
+
+        <View style={styles.feedBody}>
+          <TouchableOpacity
+            style={styles.feedPubRow}
+            onPress={() => navigation.navigate('PublisherProfile', { publisherId: item.createdBy?._id })}
+          >
+            {pubPhoto ? (
+              <Image source={{ uri: pubPhoto }} style={styles.feedPubAvatar} />
+            ) : (
+              <View style={styles.feedPubAvatarPlaceholder}>
+                <Text style={styles.feedPubAvatarText}>{item.createdBy?.name?.charAt(0).toUpperCase()}</Text>
+              </View>
+            )}
+            <Text style={styles.feedPubName}>{item.createdBy?.name}</Text>
+            {item.category && <View style={styles.feedCategoryBadge}><Text style={styles.feedCategoryText}>{item.category}</Text></View>}
+          </TouchableOpacity>
+
+          <Text style={styles.feedTitle} numberOfLines={2}>{item.title}</Text>
+          {item.organization ? <Text style={styles.feedMeta}>🏢 {item.organization}</Text> : null}
+          <Text style={styles.feedMeta}>📍 {item.location}</Text>
+          {item.startDate && <Text style={styles.feedMeta}>📅 {new Date(item.startDate).toDateString()}</Text>}
+
+          <View style={styles.feedActions}>
+            <TouchableOpacity
+              style={[styles.feedVoteBtn, likeActive && styles.feedVoteLikeActive]}
+              onPress={() => handleVote(item, 'like')}
+            >
+              <Text style={styles.feedVoteBtnText}>👍 {item.likes || 0}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.feedVoteBtn, dislikeActive && styles.feedVoteDislikeActive]}
+              onPress={() => handleVote(item, 'dislike')}
+            >
+              <Text style={styles.feedVoteBtnText}>👎 {item.dislikes || 0}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.feedCommentBtn}
+              onPress={() => navigation.navigate('OpportunityDetail', { opportunityId: item._id })}
+            >
+              <Ionicons name="chatbubble-outline" size={15} color="#555" />
+              <Text style={styles.feedCommentBtnText}>Comments</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  if (loading) return <View style={styles.centered}><ActivityIndicator size="large" color="#2e86de" /></View>;
+
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={feed}
+        keyExtractor={item => item._id}
+        renderItem={renderFeedItem}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        ListHeaderComponent={
+          <View>
+            <View style={styles.followingHeader}>
+              <Text style={styles.followingTitle}>Following ({following.length})</Text>
+              <TouchableOpacity style={styles.manageBtn} onPress={() => navigation.navigate('FindPublishers', { followedOnly: true })}>
+                <Text style={styles.manageBtnText}>Manage →</Text>
+              </TouchableOpacity>
+            </View>
+
+            {following.length === 0 ? (
+              <View style={styles.noFollowing}>
+                <Text style={styles.noFollowingText}>You're not following anyone yet.</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('FindPublishers')}>
+                  <Text style={styles.noFollowingLink}>Find publishers to follow →</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.followingScroll} contentContainerStyle={{ gap: 10, paddingHorizontal: 15 }}>
+                {following.map(pub => {
+                  const photoUri = pub.profileImage ? `${BASE_URL}/${pub.profileImage}` : null;
+                  return (
+                    <TouchableOpacity
+                      key={pub._id}
+                      style={styles.pubChip}
+                      onPress={() => navigation.navigate('PublisherProfile', { publisherId: pub._id })}
+                    >
+                      {photoUri ? (
+                        <Image source={{ uri: photoUri }} style={styles.pubChipAvatar} />
+                      ) : (
+                        <View style={styles.pubChipAvatarPlaceholder}>
+                          <Text style={styles.pubChipAvatarText}>{pub.name?.charAt(0).toUpperCase()}</Text>
+                        </View>
+                      )}
+                      <Text style={styles.pubChipName} numberOfLines={1}>{pub.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+                <TouchableOpacity style={styles.pubChipAdd} onPress={() => navigation.navigate('FindPublishers')}>
+                  <View style={styles.pubChipAddIcon}><Text style={styles.pubChipAddText}>+</Text></View>
+                  <Text style={styles.pubChipName}>Find More</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            )}
+
+            {feed.length > 0 && (
+              <Text style={styles.feedSectionLabel}>Recent posts from people you follow</Text>
+            )}
+          </View>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyFeed}>
+            <Text style={styles.emptyFeedIcon}>📰</Text>
+            <Text style={styles.emptyFeedText}>No posts yet</Text>
+            <Text style={styles.emptyFeedSub}>Follow publishers to see their opportunities here.</Text>
+          </View>
+        }
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f0f4f8' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  followingHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 15, paddingTop: 14, paddingBottom: 10 },
+  followingTitle: { fontSize: 15, fontWeight: 'bold', color: '#333' },
+  manageBtn: { backgroundColor: '#f0f4f8', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 },
+  manageBtnText: { color: '#2e86de', fontWeight: 'bold', fontSize: 13 },
+  noFollowing: { alignItems: 'center', padding: 20 },
+  noFollowingText: { color: '#999', fontSize: 14, marginBottom: 6 },
+  noFollowingLink: { color: '#2e86de', fontWeight: 'bold', fontSize: 14 },
+  followingScroll: { marginBottom: 4 },
+  pubChip: { alignItems: 'center', width: 68 },
+  pubChipAvatar: { width: 50, height: 50, borderRadius: 25, marginBottom: 5 },
+  pubChipAvatarPlaceholder: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#e9ecef', justifyContent: 'center', alignItems: 'center', marginBottom: 5 },
+  pubChipAvatarText: { fontSize: 20, fontWeight: 'bold', color: '#666' },
+  pubChipName: { fontSize: 11, color: '#555', textAlign: 'center', fontWeight: '600' },
+  pubChipAdd: { alignItems: 'center', width: 68 },
+  pubChipAddIcon: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#e8f4fd', justifyContent: 'center', alignItems: 'center', marginBottom: 5, borderWidth: 1.5, borderColor: '#2e86de', borderStyle: 'dashed' },
+  pubChipAddText: { fontSize: 24, color: '#2e86de', fontWeight: 'bold' },
+  feedSectionLabel: { fontSize: 12, color: '#aaa', paddingHorizontal: 15, paddingTop: 8, paddingBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  feedCard: { backgroundColor: '#fff', borderRadius: 14, marginHorizontal: 15, marginBottom: 14, elevation: 3, overflow: 'hidden' },
+  feedBanner: { width: '100%', height: 150 },
+  feedBannerPlaceholder: { width: '100%', height: 80, backgroundColor: '#e8f4fd', justifyContent: 'center', alignItems: 'center' },
+  feedBannerIcon: { fontSize: 32 },
+  feedBody: { padding: 14 },
+  feedPubRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  feedPubAvatar: { width: 30, height: 30, borderRadius: 15 },
+  feedPubAvatarPlaceholder: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#e9ecef', justifyContent: 'center', alignItems: 'center' },
+  feedPubAvatarText: { fontSize: 13, fontWeight: 'bold', color: '#666' },
+  feedPubName: { fontWeight: 'bold', color: '#555', fontSize: 13, flex: 1 },
+  feedCategoryBadge: { backgroundColor: '#e8f4fd', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
+  feedCategoryText: { color: '#2e86de', fontSize: 10, fontWeight: 'bold', textTransform: 'capitalize' },
+  feedTitle: { fontSize: 16, fontWeight: 'bold', color: '#222', marginBottom: 6 },
+  feedMeta: { fontSize: 12, color: '#666', marginBottom: 2 },
+  feedActions: { flexDirection: 'row', gap: 8, marginTop: 12, alignItems: 'center' },
+  feedVoteBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0f4f8', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 },
+  feedVoteLikeActive: { backgroundColor: '#d4efdf' },
+  feedVoteDislikeActive: { backgroundColor: '#fde8e8' },
+  feedVoteBtnText: { fontSize: 13, fontWeight: '600', color: '#555' },
+  feedCommentBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 4 },
+  feedCommentBtnText: { fontSize: 13, color: '#555' },
+
+  emptyFeed: { alignItems: 'center', marginTop: 40, paddingHorizontal: 30 },
+  emptyFeedIcon: { fontSize: 48, marginBottom: 12 },
+  emptyFeedText: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 6 },
+  emptyFeedSub: { fontSize: 14, color: '#999', textAlign: 'center' },
+});
+
+export default FollowingScreen;

@@ -60,7 +60,7 @@ app.use('/api/votes', voteRoutes);
 const commentRoutes = require('./routes/commentRoutes');
 app.use('/api/comments', commentRoutes);
 
-const applicationGroupRoutes = require('./routes/applicationGroupRoutes');
+const applicationGroupRoutes = require('./routes/support/applicationGroupRoutes');
 app.use('/api/application-groups', applicationGroupRoutes);
 
 const contributionRoutes = require('./routes/contributionRoutes');

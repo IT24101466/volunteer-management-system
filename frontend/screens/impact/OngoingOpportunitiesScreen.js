@@ -32,9 +32,8 @@ const OngoingOpportunitiesScreen = ({ navigation }) => {
   const [editModal, setEditModal] = useState(null);
   const [editHours, setEditHours] = useState('');
   const [editDescription, setEditDescription] = useState('');
-  const [editProofImage, setEditProofImage] = useState(null);       // new local URI
+  const [editProofImage, setEditProofImage] = useState(null);     // new local URI picked by user
   const [editExistingProof, setEditExistingProof] = useState(null); // current saved path
-  const [editRemoveProof, setEditRemoveProof] = useState(false);
   const [editSubmitting, setEditSubmitting] = useState(false);
 
   const fetchData = async () => {
@@ -85,7 +84,7 @@ const OngoingOpportunitiesScreen = ({ navigation }) => {
       formData.append('description', description);
       formData.append('proofImage', { uri: proofImage, type: 'image/jpeg', name: 'proof.jpg' });
       await api.post('/api/contributions', formData);
-      toast.success('Submitted!', 'Your contribution has been sent for verification.');
+      toast.success('Logged!', 'Your hours have been logged successfully.');
       setContribModal(null);
       fetchData();
     } catch (error) {
@@ -101,7 +100,6 @@ const OngoingOpportunitiesScreen = ({ navigation }) => {
     setEditDescription(contribution.description || '');
     setEditProofImage(null);
     setEditExistingProof(contribution.proofImage || null);
-    setEditRemoveProof(false);
   };
 
   const pickEditProof = async () => {
@@ -110,10 +108,7 @@ const OngoingOpportunitiesScreen = ({ navigation }) => {
       allowsEditing: true,
       quality: 1,
     });
-    if (!result.canceled) {
-      setEditProofImage(result.assets[0].uri);
-      setEditRemoveProof(false);
-    }
+    if (!result.canceled) setEditProofImage(result.assets[0].uri);
   };
 
   const handleEditContribution = async () => {
@@ -128,11 +123,9 @@ const OngoingOpportunitiesScreen = ({ navigation }) => {
       formData.append('description', editDescription);
       if (editProofImage) {
         formData.append('proofImage', { uri: editProofImage, type: 'image/jpeg', name: 'proof.jpg' });
-      } else if (editRemoveProof) {
-        formData.append('removeProofImage', 'true');
       }
       await api.put(`/api/contributions/my/${editModal._id}`, formData);
-      toast.success('Updated', 'Contribution updated successfully.');
+      toast.success('Updated!', 'Your contribution has been updated.');
       setEditModal(null);
       fetchData();
     } catch (error) {
@@ -145,7 +138,7 @@ const OngoingOpportunitiesScreen = ({ navigation }) => {
   const handleDeleteContribution = (contribution) => {
     confirm.show({
       title: 'Delete Contribution',
-      message: `Delete this ${contribution.hours}hr pending submission?`,
+      message: `Remove this ${contribution.hours} hr contribution? Your points will be updated.`,
       confirmText: 'Delete',
       destructive: true,
       onConfirm: async () => {
@@ -160,17 +153,16 @@ const OngoingOpportunitiesScreen = ({ navigation }) => {
     });
   };
 
-  const statusColor = (s) => ({ verified: '#27ae60', rejected: '#e74c3c' }[s] || '#f39c12');
-  const statusLabel = (s) => ({ verified: 'Verified', rejected: 'Rejected', pending: 'Pending' }[s] || s);
+  const statusColor = (s) => ({ verified: '#27ae60', rejected: '#e74c3c' }[s] || '#888');
+  const statusLabel = (s) => ({ verified: 'Verified', rejected: 'Rejected' }[s] || s);
 
-  // Image shown in edit modal
-  const editPreviewUri = editProofImage || (editExistingProof && !editRemoveProof ? `${BASE_URL}/${editExistingProof}` : null);
+  // The proof preview shown in edit modal — new pick takes priority over existing
+  const editPreviewUri = editProofImage || (editExistingProof ? `${BASE_URL}/${editExistingProof}` : null);
 
   const renderItem = ({ item }) => {
     const opp = item.opportunity;
     const contribs = item.contributions || [];
     const verifiedHours = contribs.filter(c => c.status === 'verified').reduce((s, c) => s + c.hours, 0);
-    const pendingContribs = contribs.filter(c => c.status === 'pending');
 
     return (
       <View style={styles.card}>
@@ -204,11 +196,7 @@ const OngoingOpportunitiesScreen = ({ navigation }) => {
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
               <Text style={styles.statValue}>{verifiedHours}</Text>
-              <Text style={styles.statLabel}>hrs verified</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={[styles.statValue, { color: '#f39c12' }]}>{pendingContribs.length}</Text>
-              <Text style={styles.statLabel}>pending</Text>
+              <Text style={styles.statLabel}>hrs logged</Text>
             </View>
             <View style={styles.statBox}>
               <Text style={[styles.statValue, { color: '#9b59b6' }]}>{verifiedHours * 10}</Text>
@@ -242,16 +230,14 @@ const OngoingOpportunitiesScreen = ({ navigation }) => {
                     <View style={[styles.statusBadge, { backgroundColor: statusColor(c.status) + '22', borderColor: statusColor(c.status) }]}>
                       <Text style={[styles.statusBadgeText, { color: statusColor(c.status) }]}>{statusLabel(c.status)}</Text>
                     </View>
-                    {c.status === 'pending' && (
-                      <View style={styles.contribActions}>
-                        <TouchableOpacity style={styles.editContribBtn} onPress={() => openEditModal(c)}>
-                          <Text style={styles.editContribBtnText}>Edit</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.deleteContribBtn} onPress={() => handleDeleteContribution(c)}>
-                          <Text style={styles.deleteContribBtnText}>✕</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
+                    <View style={styles.contribActions}>
+                      <TouchableOpacity style={styles.editContribBtn} onPress={() => openEditModal(c)}>
+                        <Ionicons name="pencil-outline" size={13} color="#2e86de" />
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.deleteContribBtn} onPress={() => handleDeleteContribution(c)}>
+                        <Ionicons name="trash-outline" size={13} color="#e74c3c" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               ))}
@@ -283,12 +269,12 @@ const OngoingOpportunitiesScreen = ({ navigation }) => {
           <View style={styles.emptyContainer}>
             <Ionicons name="leaf-outline" size={48} color="#27ae60" style={styles.emptyIcon} />
             <Text style={styles.emptyText}>No active volunteering</Text>
-            <Text style={styles.emptySubText}>Apply to opportunities and get accepted to log hours here.</Text>
+            <Text style={styles.emptySubText}>Join opportunities to start logging your volunteer hours.</Text>
           </View>
         }
       />
 
-      {/* Add Contribution Modal */}
+      {/* Log Contribution Modal */}
       <Modal visible={!!contribModal} transparent animationType="fade" onRequestClose={() => setContribModal(null)}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setContribModal(null)} />
@@ -338,13 +324,13 @@ const OngoingOpportunitiesScreen = ({ navigation }) => {
 
                 <View style={styles.pointsPreview}>
                   <Text style={styles.pointsPreviewText}>
-                    🏆 This will earn you <Text style={styles.pointsPreviewNum}>{Math.floor(Number(hours || 0) * 10)} pts</Text> once verified
+                    🏆 This will earn you <Text style={styles.pointsPreviewNum}>{Math.floor(Number(hours || 0) * 10)} pts</Text>
                   </Text>
                 </View>
 
                 <View style={styles.modalButtons}>
                   <TouchableOpacity style={styles.submitBtn} onPress={handleSubmitContribution} disabled={submitting}>
-                    {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Submit for Verification</Text>}
+                    {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Log Hours</Text>}
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.cancelBtn} onPress={() => setContribModal(null)}>
                     <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -363,7 +349,7 @@ const OngoingOpportunitiesScreen = ({ navigation }) => {
           <View style={styles.modalCenteredWrapper} pointerEvents="box-none">
             <View style={styles.modal}>
               <Text style={styles.modalTitle}>Edit Contribution</Text>
-              <Text style={styles.modalSubtitle}>Pending — awaiting verification</Text>
+              <Text style={styles.modalSubtitle}>{editModal?.hours} hr submission</Text>
               <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                 <Text style={styles.label}>Hours *</Text>
                 <TextInput
@@ -390,27 +376,21 @@ const OngoingOpportunitiesScreen = ({ navigation }) => {
 
                 <Text style={styles.label}>Proof Photo</Text>
                 <TouchableOpacity style={styles.imagePickerBtn} onPress={pickEditProof}>
-                  <Ionicons name="camera-outline" size={18} color="#9b59b6" style={{ marginRight: 8 }} />
-                  <Text style={styles.imagePickerText}>{editPreviewUri ? 'Replace proof photo' : 'Upload proof photo'}</Text>
+                  <Ionicons name="camera-outline" size={18} color={editProofImage ? '#27ae60' : '#9b59b6'} style={{ marginRight: 8 }} />
+                  <Text style={[styles.imagePickerText, editProofImage && { color: '#27ae60' }]}>
+                    {editProofImage ? '✓ New photo selected — tap to change' : 'Replace proof photo'}
+                  </Text>
                 </TouchableOpacity>
                 {editPreviewUri ? (
                   <View style={styles.proofPreviewContainer}>
                     <AutoHeightImage uri={editPreviewUri} borderRadius={10} />
-                    <TouchableOpacity
-                      style={styles.removeProofBtn}
-                      onPress={() => {
-                        if (editProofImage) setEditProofImage(null);
-                        else { setEditExistingProof(null); setEditRemoveProof(true); }
-                      }}
-                    >
-                      <Ionicons name="close-circle" size={26} color="#e74c3c" />
-                    </TouchableOpacity>
                   </View>
                 ) : null}
+                <Text style={styles.inputHint}>A proof photo is required. Tap above to replace the current one.</Text>
 
                 <View style={styles.pointsPreview}>
                   <Text style={styles.pointsPreviewText}>
-                    🏆 Will earn <Text style={styles.pointsPreviewNum}>{Math.floor(Number(editHours || 0) * 10)} pts</Text> once verified
+                    🏆 Updated points: <Text style={styles.pointsPreviewNum}>{Math.floor(Number(editHours || 0) * 10)} pts</Text>
                   </Text>
                 </View>
 
@@ -463,10 +443,8 @@ const styles = StyleSheet.create({
   statusBadge: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1 },
   statusBadgeText: { fontSize: 11, fontWeight: 'bold' },
   contribActions: { flexDirection: 'row', gap: 6 },
-  editContribBtn: { backgroundColor: '#e8f4fd', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  editContribBtnText: { color: '#2e86de', fontWeight: 'bold', fontSize: 12 },
-  deleteContribBtn: { backgroundColor: '#fdecea', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  deleteContribBtnText: { color: '#e74c3c', fontWeight: 'bold', fontSize: 12 },
+  editContribBtn: { backgroundColor: '#e8f4fd', borderRadius: 8, padding: 6 },
+  deleteContribBtn: { backgroundColor: '#fdecea', borderRadius: 8, padding: 6 },
 
   logBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -480,7 +458,6 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 8 },
   emptySubText: { fontSize: 14, color: '#999', textAlign: 'center' },
 
-  // Modal
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   modalBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' },
   modalCenteredWrapper: { width: '90%', maxHeight: '85%', zIndex: 10 },

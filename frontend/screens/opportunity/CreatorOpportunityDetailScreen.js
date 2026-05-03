@@ -16,7 +16,6 @@ const CreatorOpportunityDetailScreen = ({ route, navigation }) => {
   const confirm = useConfirm();
   const [opportunity, setOpportunity] = useState(null);
   const [applications, setApplications] = useState([]);
-  const [fundraisers, setFundraisers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Edit form
@@ -38,14 +37,12 @@ const CreatorOpportunityDetailScreen = ({ route, navigation }) => {
 
   const fetchData = async () => {
     try {
-      const [oppRes, appRes, frRes] = await Promise.all([
+      const [oppRes, appRes] = await Promise.all([
         api.get(`/api/opportunities/${opportunityId}`),
-        api.get(`/api/applications/opportunity/${opportunityId}`),
-        api.get(`/api/fundraisers/opportunity/${opportunityId}`)
+        api.get(`/api/applications/opportunity/${opportunityId}`)
       ]);
       setOpportunity(oppRes.data);
       setApplications(appRes.data);
-      setFundraisers(frRes.data);
     } catch {
       toast.error('Error', 'Failed to load data');
     } finally {
@@ -159,8 +156,8 @@ const CreatorOpportunityDetailScreen = ({ route, navigation }) => {
 
   if (loading) return <View style={styles.centered}><ActivityIndicator size="large" color="#2e86de" /></View>;
 
-  const pendingCount = applications.filter(a => a.status === 'pending').length;
-  const acceptedCount = applications.filter(a => a.status === 'approved').length;
+  const joinedCount = applications.filter(a => a.status === 'approved').length;
+  const completedCount = applications.filter(a => a.status === 'completed').length;
 
   return (
     <ScrollView style={styles.container}>
@@ -275,9 +272,8 @@ const CreatorOpportunityDetailScreen = ({ route, navigation }) => {
       <View style={styles.statsRow}>
         {[
           { n: applications.length, l: 'Total', color: '#2e86de' },
-          { n: pendingCount, l: 'Pending', color: '#f39c12' },
-          { n: acceptedCount, l: 'Accepted', color: '#27ae60' },
-          { n: fundraisers.length, l: 'Fundraisers', color: '#9b59b6' },
+          { n: joinedCount, l: 'Joined', color: '#27ae60' },
+          { n: completedCount, l: 'Completed', color: '#9b59b6' },
         ].map(s => (
           <View key={s.l} style={styles.statBox}>
             <Text style={[styles.statNumber, { color: s.color }]}>{s.n}</Text>
@@ -298,24 +294,8 @@ const CreatorOpportunityDetailScreen = ({ route, navigation }) => {
           <View>
             <Text style={styles.navButtonTitle}>Applications</Text>
             <Text style={styles.navButtonSub}>
-              {applications.length} total · {pendingCount} pending
+              {applications.length} total · {joinedCount} joined
             </Text>
-          </View>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color="#aaa" />
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.navButton}
-        onPress={() => navigation.navigate('ManageFundraisers', { opportunityId, opportunityTitle: opportunity?.title })}
-      >
-        <View style={styles.navButtonLeft}>
-          <View style={[styles.navButtonIcon, { backgroundColor: '#27ae60' }]}>
-            <Ionicons name="cash" size={22} color="#fff" />
-          </View>
-          <View>
-            <Text style={styles.navButtonTitle}>Fundraisers</Text>
-            <Text style={styles.navButtonSub}>{fundraisers.length} fundraiser{fundraisers.length !== 1 ? 's' : ''}</Text>
           </View>
         </View>
         <Ionicons name="chevron-forward" size={20} color="#aaa" />

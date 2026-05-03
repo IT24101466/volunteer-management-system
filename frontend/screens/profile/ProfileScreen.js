@@ -89,6 +89,8 @@ const ProfileScreen = ({ navigation }) => {
 
           {showMore && (
             <>
+              <NavRow icon="folder-outline" label="Application Groups" onPress={() => navigation.navigate('ApplicationGroups')} color="#2e86de" />
+              <NavRow icon="people-outline" label="Following" onPress={() => navigation.navigate('Following')} color="#2e86de" />
               <NavRow icon="thumbs-up-outline" label="My Likes & Comments" onPress={() => navigation.navigate('MyLikesComments')} />
               <NavRow icon="chatbubble-ellipses-outline" label="Help Us Improve" onPress={() => navigation.navigate('Feedback')} color={t.purple} />
             </>

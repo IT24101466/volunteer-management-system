@@ -30,65 +30,32 @@ const submitContribution = async (req, res) => {
       volunteer: req.user.id,
       hours: Number(hours),
       description: description || '',
-      proofImage
+      proofImage,
+      status: 'verified'
     });
 
-    // Notify the creator
+    // Notify creator and volunteer
     try {
       const opp = await Opportunity.findById(opportunityId).select('title createdBy');
       if (opp) {
         await Notification.create({
           recipient: opp.createdBy,
           type: 'contribution_received',
-          message: `A volunteer submitted ${hours} hrs for verification — "${opp.title}"`,
+          message: `A volunteer logged ${hours} hrs for "${opp.title}"`,
           relatedId: opp._id
+        });
+        const pts = Math.floor(Number(hours) * 10);
+        await Notification.create({
+          recipient: req.user.id,
+          type: 'contribution_status',
+          message: `✅ Your ${hours} hr contribution for "${opp.title}" has been recorded! You earned ${pts} pts.`,
+          relatedId: opp._id,
+          relatedType: 'opportunity'
         });
       }
     } catch {}
 
-    res.status(201).json({ message: 'Contribution submitted for verification', contribution });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-// Volunteer updates their own PENDING contribution
-const updateMyContribution = async (req, res) => {
-  try {
-    const { hours, description } = req.body;
-    const contribution = await Contribution.findById(req.params.id);
-    if (!contribution) return res.status(404).json({ message: 'Contribution not found' });
-    if (contribution.volunteer.toString() !== req.user.id) return res.status(403).json({ message: 'Not authorized' });
-    if (contribution.status !== 'pending') return res.status(400).json({ message: 'Can only edit pending contributions' });
-
-    if (hours !== undefined) {
-      if (isNaN(hours) || Number(hours) < 0.5) return res.status(400).json({ message: 'Hours must be at least 0.5' });
-      contribution.hours = Number(hours);
-    }
-    if (description !== undefined) contribution.description = description;
-    if (req.file) {
-      contribution.proofImage = req.file.path.replace(/\\/g, '/');
-    } else if (req.body.removeProofImage === 'true') {
-      contribution.proofImage = '';
-    }
-    await contribution.save();
-
-    res.json({ message: 'Contribution updated', contribution });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-// Volunteer deletes their own PENDING contribution
-const deleteMyContribution = async (req, res) => {
-  try {
-    const contribution = await Contribution.findById(req.params.id);
-    if (!contribution) return res.status(404).json({ message: 'Contribution not found' });
-    if (contribution.volunteer.toString() !== req.user.id) return res.status(403).json({ message: 'Not authorized' });
-    if (contribution.status !== 'pending') return res.status(400).json({ message: 'Can only delete pending contributions' });
-
-    await Contribution.deleteOne({ _id: req.params.id });
-    res.json({ message: 'Contribution deleted' });
+    res.status(201).json({ message: 'Contribution logged successfully', contribution });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -124,6 +91,44 @@ const getMyApprovedOpportunities = async (req, res) => {
     }));
 
     res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Volunteer updates their own contribution (hours, description, proof image)
+const updateMyContribution = async (req, res) => {
+  try {
+    const { hours, description } = req.body;
+    const contribution = await Contribution.findById(req.params.id);
+    if (!contribution) return res.status(404).json({ message: 'Contribution not found' });
+    if (contribution.volunteer.toString() !== req.user.id) return res.status(403).json({ message: 'Not authorized' });
+
+    if (hours !== undefined) {
+      if (isNaN(hours) || Number(hours) < 0.5) return res.status(400).json({ message: 'Hours must be at least 0.5' });
+      contribution.hours = Number(hours);
+    }
+    if (description !== undefined) contribution.description = description;
+    if (req.file) contribution.proofImage = req.file.path.replace(/\\/g, '/');
+    // Editing a rejected contribution restores it to verified
+    if (contribution.status === 'rejected') contribution.status = 'verified';
+    await contribution.save();
+
+    res.json({ message: 'Contribution updated', contribution });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Volunteer deletes their own contribution
+const deleteMyContribution = async (req, res) => {
+  try {
+    const contribution = await Contribution.findById(req.params.id);
+    if (!contribution) return res.status(404).json({ message: 'Contribution not found' });
+    if (contribution.volunteer.toString() !== req.user.id) return res.status(403).json({ message: 'Not authorized' });
+
+    await Contribution.deleteOne({ _id: req.params.id });
+    res.json({ message: 'Contribution deleted' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -184,28 +189,6 @@ const updateContributionStatus = async (req, res) => {
   }
 };
 
-// Volunteer gets their completed opportunities (past volunteering)
-const getMyCompletedOpportunities = async (req, res) => {
-  try {
-    const applications = await Application.find({ volunteer: req.user.id, status: 'completed' })
-      .populate('opportunity', 'title organization location startDate endDate bannerImage category')
-      .sort({ updatedAt: -1 });
-
-    const result = await Promise.all(applications.map(async (app) => {
-      const contributions = await Contribution.find({
-        opportunity: app.opportunity._id,
-        volunteer: req.user.id
-      }).sort({ createdAt: -1 });
-      const verifiedHours = contributions.filter(c => c.status === 'verified').reduce((s, c) => s + c.hours, 0);
-      return { application: app, opportunity: app.opportunity, contributions, verifiedHours };
-    }));
-
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
 // Creator gets all contributions across all their opportunities
 const getAllContributionsForCreator = async (req, res) => {
   try {
@@ -229,7 +212,6 @@ module.exports = {
   deleteMyContribution,
   getMyContributions,
   getMyApprovedOpportunities,
-  getMyCompletedOpportunities,
   getContributionsForOpportunity,
   updateContributionStatus,
   getAllContributionsForCreator

@@ -36,26 +36,31 @@ const createDonation = async (req, res) => {
       message: message || '',
       donorName: donorName || '',
       donorPhone: donorPhone || '',
-      receiptImage
+      receiptImage,
+      status: 'confirmed'
     });
 
     const populated = await Donation.findById(donation._id)
       .populate('fundraiser', 'name targetAmount status')
       .populate('opportunity', 'title');
 
-    // Notify opportunity creator (only for opportunity-linked fundraisers)
-    if (fundraiser.opportunity) {
-      try {
-        await Notification.create({
-          recipient: fundraiser.opportunity.createdBy,
-          type: 'donation_received',
-          message: `A new donation of LKR ${amount} was received for "${fundraiser.name}"`,
-          relatedId: fundraiser.opportunity._id
-        });
-      } catch {}
-    }
+    // Auto-complete fundraiser if target reached
+    try {
+      const fr = await Fundraiser.findById(fundraiserId);
+      if (fr && fr.status === 'active') {
+        const totalConfirmed = await Donation.aggregate([
+          { $match: { fundraiser: fr._id, status: 'confirmed' } },
+          { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]);
+        if ((totalConfirmed[0]?.total || 0) >= fr.targetAmount) {
+          fr.status = 'completed';
+          fr.completedAt = new Date();
+          await fr.save();
+        }
+      }
+    } catch {}
 
-    res.status(201).json({ message: 'Donation submitted successfully', donation: populated });
+    res.status(201).json({ message: 'Donation recorded successfully', donation: populated });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -194,7 +199,6 @@ const deleteDonation = async (req, res) => {
     const donation = await Donation.findById(req.params.id);
     if (!donation) return res.status(404).json({ message: 'Donation not found' });
     if (donation.donor.toString() !== req.user.id) return res.status(403).json({ message: 'Not authorized' });
-    if (donation.status !== 'pending') return res.status(400).json({ message: 'Cannot delete a confirmed/rejected donation' });
 
     await Donation.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Donation deleted' });
