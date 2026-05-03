@@ -175,6 +175,42 @@ const updateApplicationStatus = async (req, res) => {
   }
 };
 
+// Volunteer updates their own pending application
+const updateApplication = async (req, res) => {
+  try {
+    const application = await Application.findById(req.params.id);
+    if (!application) return res.status(404).json({ message: 'Application not found' });
+    if (application.volunteer.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    if (application.status !== 'pending') {
+      return res.status(400).json({ message: 'Only pending applications can be edited' });
+    }
+
+    const { applicantName, phone, email, coverLetter, motivation, expectedHours, hopingToGain, useProfilePhoto } = req.body;
+    if (applicantName !== undefined) application.applicantName = applicantName;
+    if (phone !== undefined) application.phone = phone;
+    if (email !== undefined) application.email = email;
+    if (coverLetter !== undefined) application.coverLetter = coverLetter;
+    if (motivation !== undefined) application.motivation = motivation;
+    if (expectedHours !== undefined) application.expectedHours = expectedHours ? Number(expectedHours) : null;
+    if (hopingToGain !== undefined) application.hopingToGain = hopingToGain;
+
+    if (req.file) {
+      application.photo = req.file.path;
+    } else if (useProfilePhoto === 'true') {
+      const User = require('../models/User');
+      const userDoc = await User.findById(req.user.id).select('profileImage');
+      if (userDoc?.profileImage) application.photo = userDoc.profileImage;
+    }
+
+    await application.save();
+    res.status(200).json({ message: 'Application updated successfully', application });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 // Withdraw application
 const deleteApplication = async (req, res) => {
   try {
@@ -248,6 +284,7 @@ module.exports = {
   getMyApplications,
   getApplicationsForOpportunity,
   updateApplicationStatus,
+  updateApplication,
   revokeAcceptedVolunteer,
   deleteApplication,
   getAllApplicationsForCreator

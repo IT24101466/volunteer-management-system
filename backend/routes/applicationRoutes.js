@@ -8,6 +8,7 @@ const {
   getMyApplications,
   getApplicationsForOpportunity,
   updateApplicationStatus,
+  updateApplication,
   revokeAcceptedVolunteer,
   deleteApplication,
   getAllApplicationsForCreator
@@ -32,6 +33,7 @@ router.post('/', protect, upload.single('photo'), applyToOpportunity);
 router.get('/my', protect, getMyApplications);
 router.get('/creator/all', protect, getAllApplicationsForCreator);
 router.get('/opportunity/:opportunityId', protect, getApplicationsForOpportunity);
+router.put('/:id', protect, upload.single('photo'), updateApplication);
 router.put('/:id/status', protect, updateApplicationStatus);
 router.put('/:id/revoke', protect, revokeAcceptedVolunteer);
 router.delete('/:id', protect, deleteApplication);
