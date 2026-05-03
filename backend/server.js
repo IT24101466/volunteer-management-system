@@ -40,7 +40,7 @@ app.use('/api/applications', applicationRoutes);
 
 
 // Feedback Routes
-const feedbackRoutes = require('./routes/feedbackRoutes');
+const feedbackRoutes = require('./routes/support/feedbackRoutes');
 app.use('/api/feedback', feedbackRoutes);
 
 // Donation Routes
@@ -72,7 +72,7 @@ app.use('/api/points', pointsRoutes);
 const goalRoutes = require('./routes/goalRoutes');
 app.use('/api/goals', goalRoutes);
 
-const userFeedbackRoutes = require('./routes/userFeedbackRoutes');
+const userFeedbackRoutes = require('./routes/support/userFeedbackRoutes');
 app.use('/api/user-feedback', userFeedbackRoutes);
 
 const adminRoutes = require('./routes/adminRoutes');

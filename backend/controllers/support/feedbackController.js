@@ -1,5 +1,5 @@
-const Feedback = require('../models/Feedback');
-const Opportunity = require('../models/Opportunity');
+const Feedback = require('../../models/support/Feedback');
+const Opportunity = require('../../models/Opportunity');
 
 // Create feedback for an opportunity (accessible to all authenticated users)
 const createFeedback = async (req, res) => {

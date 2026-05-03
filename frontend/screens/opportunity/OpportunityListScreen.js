@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, FlatList, TouchableOpacity,
   StyleSheet, TextInput, ActivityIndicator,
-  RefreshControl, Image, Modal, ScrollView
+  RefreshControl, Image, ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useToast } from '../../components/Toast';
@@ -27,22 +27,14 @@ const OpportunityListScreen = ({ navigation }) => {
   const toast = useToast();
   const t = useTheme();
   const isAdmin = useContext(AuthContext).user?.role === 'admin';
-  const [activeTab, setActiveTab] = useState('home');
-  const [allOpportunities, setAllOpportunities] = useState([]); // full list from API
-  const [opportunities, setOpportunities] = useState([]);       // filtered list
+  const [allOpportunities, setAllOpportunities] = useState([]);
+  const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tabLoading, setTabLoading] = useState(false);          // subtle tab switch indicator
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const { user, logout } = useContext(AuthContext);
-
-  // Favourites modal
-  const [favModalVisible, setFavModalVisible] = useState(false);
-  const [favLists, setFavLists] = useState([]);
-  const [pendingFavOpp, setPendingFavOpp] = useState(null);
-  const [favLoading, setFavLoading] = useState(false);
 
   const applyLocalFilter = useCallback((all, searchTerm, category) => {
     let filtered = all;
@@ -60,12 +52,9 @@ const OpportunityListScreen = ({ navigation }) => {
     return filtered;
   }, []);
 
-  const fetchOpportunities = useCallback(async (tab = 'home', searchTerm = '', category = '', isTabSwitch = false) => {
+  const fetchOpportunities = useCallback(async (searchTerm = '', category = '') => {
     try {
-      const sort = tab === 'popular' ? 'popular' : tab === 'toprated' ? 'toprated' : '';
-      let url = `/api/opportunities?`;
-      if (sort) url += `sort=${sort}`;
-      const response = await api.get(url);
+      const response = await api.get('/api/opportunities');
       setAllOpportunities(response.data);
       setOpportunities(applyLocalFilter(response.data, searchTerm, category));
     } catch {
@@ -73,17 +62,13 @@ const OpportunityListScreen = ({ navigation }) => {
     } finally {
       setLoading(false);
       setRefreshing(false);
-      setTabLoading(false);
     }
   }, [applyLocalFilter]);
 
-  const isMounted = useRef(false);
-
   useEffect(() => {
-    // Only show full loading on first mount
-    if (!isMounted.current) setLoading(true);
-    fetchOpportunities(activeTab, search, selectedCategory);
-  }, [activeTab]);
+    setLoading(true);
+    fetchOpportunities(search, selectedCategory);
+  }, []);
 
   const fetchUnreadCount = async () => {
     try {
@@ -92,16 +77,11 @@ const OpportunityListScreen = ({ navigation }) => {
     } catch {}
   };
 
-  // Auto-refresh opportunities and unread count whenever screen gains focus
   useFocusEffect(
     useCallback(() => {
-      if (isMounted.current) {
-        fetchOpportunities(activeTab, search, selectedCategory);
-      } else {
-        isMounted.current = true;
-      }
+      fetchOpportunities(search, selectedCategory);
       fetchUnreadCount();
-    }, [activeTab])
+    }, [])
   );
 
   const handleSearch = (text) => {
@@ -116,104 +96,7 @@ const OpportunityListScreen = ({ navigation }) => {
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchOpportunities(activeTab, search, selectedCategory);
-  };
-
-  const handleTabChange = (tab) => {
-    if (tab === activeTab) return;
-    setSearch('');
-    setSelectedCategory('');
-    // Show subtle loading indicator instead of full blank screen
-    setTabLoading(true);
-    setActiveTab(tab);
-  };
-
-  const handleVote = async (item, vote) => {
-    // Optimistic update
-    const prevVote = item.userVote;
-    let newLikes = item.likes || 0;
-    let newDislikes = item.dislikes || 0;
-    let newUserVote = vote;
-
-    if (prevVote === vote) {
-      // toggle off
-      if (vote === 'like') newLikes = Math.max(0, newLikes - 1);
-      else newDislikes = Math.max(0, newDislikes - 1);
-      newUserVote = null;
-    } else {
-      if (prevVote === 'like') newLikes = Math.max(0, newLikes - 1);
-      else if (prevVote === 'dislike') newDislikes = Math.max(0, newDislikes - 1);
-      if (vote === 'like') newLikes += 1;
-      else newDislikes += 1;
-    }
-
-    const updateFn = (prev) => prev.map(o => o._id === item._id
-      ? { ...o, likes: newLikes, dislikes: newDislikes, userVote: newUserVote }
-      : o
-    );
-    setOpportunities(updateFn);
-    setAllOpportunities(prev => prev.map(o => o._id === item._id
-      ? { ...o, likes: newLikes, dislikes: newDislikes, userVote: newUserVote }
-      : o
-    ));
-
-    try {
-      const res = await api.post('/api/votes', { targetId: item._id, targetType: 'opportunity', vote });
-      setOpportunities(prev => prev.map(o => o._id === item._id
-        ? { ...o, likes: res.data.likes, dislikes: res.data.dislikes, userVote: res.data.userVote }
-        : o
-      ));
-      setAllOpportunities(prev => prev.map(o => o._id === item._id
-        ? { ...o, likes: res.data.likes, dislikes: res.data.dislikes, userVote: res.data.userVote }
-        : o
-      ));
-    } catch {
-      // Revert on error
-      setOpportunities(prev => prev.map(o => o._id === item._id
-        ? { ...o, likes: item.likes, dislikes: item.dislikes, userVote: item.userVote }
-        : o
-      ));
-      setAllOpportunities(prev => prev.map(o => o._id === item._id
-        ? { ...o, likes: item.likes, dislikes: item.dislikes, userVote: item.userVote }
-        : o
-      ));
-    }
-  };
-
-  const handleAddToFavourites = async (opportunity) => {
-    setPendingFavOpp(opportunity);
-    setFavLoading(true);
-    setFavModalVisible(true);
-    try {
-      const res = await api.get('/api/favourites');
-      setFavLists(res.data);
-    } catch {
-      toast.error('Error', 'Failed to load your lists');
-      setFavModalVisible(false);
-    } finally {
-      setFavLoading(false);
-    }
-  };
-
-  const addToList = async (listId) => {
-    setFavModalVisible(false);
-    try {
-      await api.post(`/api/favourites/${listId}/add`, { opportunityId: pendingFavOpp._id });
-      toast.success('Added!', `"${pendingFavOpp.title}" saved to your list.`);
-    } catch (error) {
-      toast.error('Error', error.response?.data?.message || 'Failed to add');
-    }
-  };
-
-  const createDefaultAndAdd = async () => {
-    setFavModalVisible(false);
-    try {
-      const res = await api.post('/api/favourites', { name: 'Favourites', description: 'My saved opportunities' });
-      await api.post(`/api/favourites/${res.data._id}/add`, { opportunityId: pendingFavOpp._id });
-      toast.success('Saved!', `Created "Favourites" list and added "${pendingFavOpp.title}".`);
-    } catch {
-      toast.error('Error', 'Failed to save');
-    }
+    fetchOpportunities(search, selectedCategory);
   };
 
   const s = makeStyles(t);
@@ -221,8 +104,6 @@ const OpportunityListScreen = ({ navigation }) => {
   const renderItem = ({ item }) => {
     const isOwn = item.createdBy?._id === user?.id || item.createdBy?.id === user?.id;
     const hasFundraisers = item.fundraisers?.length > 0;
-    const likeActive = item.userVote === 'like';
-    const dislikeActive = item.userVote === 'dislike';
 
     return (
       <TouchableOpacity
@@ -241,11 +122,6 @@ const OpportunityListScreen = ({ navigation }) => {
             <View style={s.categoryBadge}><Text style={s.categoryText}>{item.category}</Text></View>
             {item.status === 'closed' && (
               <View style={s.closedBadge}><Text style={s.closedBadgeText}>Closed</Text></View>
-            )}
-            {item.averageRating && (
-              <View style={s.ratingBadge}>
-                <Text style={s.ratingText}>⭐ {item.averageRating}</Text>
-              </View>
             )}
           </View>
           {isOwn && <View style={s.ownBadge}><Text style={s.ownBadgeText}>Your Post</Text></View>}
@@ -307,32 +183,10 @@ const OpportunityListScreen = ({ navigation }) => {
             <Ionicons name="people-outline" size={14} color={t.success} style={{ marginRight: 4 }} />
             <Text style={s.cardSpots}>{item.spotsAvailable} spots</Text>
           </View>
-          <View style={s.footerRight}>
-            <TouchableOpacity
-              style={[s.voteBtn, likeActive && s.voteBtnLikeActive]}
-              onPress={(e) => { e.stopPropagation?.(); handleVote(item, 'like'); }}
-            >
-              <Ionicons name="thumbs-up-outline" size={13} color={likeActive ? t.accent : t.textMuted} style={{ marginRight: 3 }} />
-              <Text style={s.voteBtnText}>{item.likes || 0}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[s.voteBtn, dislikeActive && s.voteBtnDislikeActive]}
-              onPress={(e) => { e.stopPropagation?.(); handleVote(item, 'dislike'); }}
-            >
-              <Ionicons name="thumbs-down-outline" size={13} color={dislikeActive ? t.danger : t.textMuted} style={{ marginRight: 3 }} />
-              <Text style={s.voteBtnText}>{item.dislikes || 0}</Text>
-            </TouchableOpacity>
-
-            {!isAdmin && (
-              <TouchableOpacity style={s.heartButton} onPress={(e) => { e.stopPropagation?.(); handleAddToFavourites(item); }}>
-                <Ionicons name="bookmark-outline" size={15} color={t.accent} />
-              </TouchableOpacity>
-            )}
-            <View style={[s.applyBadge, (isOwn || item.status === 'closed') && s.applyBadgeOwn]}>
-              <Text style={s.applyBadgeText}>
-                {isOwn || isAdmin ? 'View' : item.status === 'closed' ? 'Closed' : 'View & Apply'}
-              </Text>
-            </View>
+          <View style={[s.applyBadge, (isOwn || item.status === 'closed') && s.applyBadgeOwn]}>
+            <Text style={s.applyBadgeText}>
+              {isOwn || isAdmin ? 'View' : item.status === 'closed' ? 'Closed' : 'View & Apply'}
+            </Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -341,27 +195,23 @@ const OpportunityListScreen = ({ navigation }) => {
 
   const listHeader = () => (
     <>
-      {activeTab === 'home' && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.categoryScroll} contentContainerStyle={s.categoryScrollContent}>
-          {CATEGORIES.map(cat => (
-            <TouchableOpacity
-              key={cat.key}
-              style={[s.categoryChip, selectedCategory === cat.key && s.categoryChipActive]}
-              onPress={() => handleCategory(cat.key)}
-            >
-              <Text style={s.categoryChipIcon}>{cat.icon}</Text>
-              <Text style={[s.categoryChipLabel, selectedCategory === cat.key && s.categoryChipLabelActive]}>
-                {cat.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      )}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.categoryScroll} contentContainerStyle={s.categoryScrollContent}>
+        {CATEGORIES.map(cat => (
+          <TouchableOpacity
+            key={cat.key}
+            style={[s.categoryChip, selectedCategory === cat.key && s.categoryChipActive]}
+            onPress={() => handleCategory(cat.key)}
+          >
+            <Text style={s.categoryChipIcon}>{cat.icon}</Text>
+            <Text style={[s.categoryChipLabel, selectedCategory === cat.key && s.categoryChipLabelActive]}>
+              {cat.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
       <View style={s.sectionHeader}>
-        <Text style={s.sectionTitle}>
-          {activeTab === 'home' ? 'Opportunities' : activeTab === 'popular' ? 'Most Popular' : 'Top Rated'}
-        </Text>
+        <Text style={s.sectionTitle}>Opportunities</Text>
         <Text style={s.sectionCount}>{opportunities.length} found</Text>
       </View>
     </>
@@ -416,38 +266,10 @@ const OpportunityListScreen = ({ navigation }) => {
         </View>
       )}
 
-      {/* Search bar — only on Home tab, not for admin */}
-      {activeTab === 'home' && !isAdmin && (
-        <View style={s.searchContainer}>
-          <Ionicons name="search-outline" size={20} color={t.textMuted} style={s.searchIcon} />
-          <TextInput style={s.searchInput} placeholderTextColor={t.textMuted} placeholder="Search opportunities..." value={search} onChangeText={handleSearch} />
-        </View>
-      )}
-
-      {/* Search bar for admin */}
-      {activeTab === 'home' && isAdmin && (
-        <View style={s.searchContainer}>
-          <Ionicons name="search-outline" size={20} color={t.textMuted} style={s.searchIcon} />
-          <TextInput style={s.searchInput} placeholderTextColor={t.textMuted} placeholder="Search opportunities..." value={search} onChangeText={handleSearch} />
-        </View>
-      )}
-
-      {/* Tabs */}
-      <View style={s.tabBar}>
-        {[
-          { key: 'home', label: 'Home', icon: 'home-outline' },
-          { key: 'popular', label: 'Popular', icon: 'flame-outline' },
-          { key: 'toprated', label: 'Top Rated', icon: 'star-outline' },
-        ].map(tab => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[s.tab, activeTab === tab.key && s.tabActive]}
-            onPress={() => handleTabChange(tab.key)}
-          >
-            <Ionicons name={tab.icon} size={18} color={activeTab === tab.key ? t.accent : t.textMuted} />
-            <Text style={[s.tabLabel, activeTab === tab.key && s.tabLabelActive]}>{tab.label}</Text>
-          </TouchableOpacity>
-        ))}
+      {/* Search bar */}
+      <View style={s.searchContainer}>
+        <Ionicons name="search-outline" size={20} color={t.textMuted} style={s.searchIcon} />
+        <TextInput style={s.searchInput} placeholderTextColor={t.textMuted} placeholder="Search opportunities..." value={search} onChangeText={handleSearch} />
       </View>
 
       {!isAdmin && (
@@ -455,13 +277,6 @@ const OpportunityListScreen = ({ navigation }) => {
           <Ionicons name="add-circle-outline" size={20} color="#fff" />
           <Text style={s.createButtonText}>Post New Opportunity</Text>
         </TouchableOpacity>
-      )}
-
-      {tabLoading && (
-        <View style={s.tabLoadingBar}>
-          <ActivityIndicator size="small" color={t.accent} />
-          <Text style={s.tabLoadingText}>Loading...</Text>
-        </View>
       )}
 
       <FlatList
@@ -479,52 +294,6 @@ const OpportunityListScreen = ({ navigation }) => {
           </View>
         }
       />
-
-      {/* Favourites list picker modal */}
-      {!isAdmin && (
-        <Modal visible={favModalVisible} transparent animationType="slide" onRequestClose={() => setFavModalVisible(false)}>
-          <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setFavModalVisible(false)}>
-            <View style={s.favModal} onStartShouldSetResponder={() => true}>
-              <View style={s.favModalHandle} />
-              <Text style={s.favModalTitle}>Save to Favourites</Text>
-              {pendingFavOpp && <Text style={s.favModalOppTitle} numberOfLines={1}>{pendingFavOpp.title}</Text>}
-
-              {favLoading ? (
-                <ActivityIndicator color={t.danger} style={{ marginVertical: 20 }} />
-              ) : favLists.length === 0 ? (
-                <View style={s.noListsContainer}>
-                  <Text style={s.noListsText}>You don't have any lists yet.</Text>
-                  <Text style={s.noListsSubText}>Create a favourites list first before saving opportunities.</Text>
-                  <TouchableOpacity style={s.favActionBtn} onPress={() => { setFavModalVisible(false); navigation.navigate('Favourites'); }}>
-                    <Text style={s.favActionBtnText}>Go to My Favourites to create a list</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <>
-                  <Text style={s.favModalHint}>Choose a list:</Text>
-                  {favLists.map(list => (
-                    <TouchableOpacity key={list._id} style={s.favListItem} onPress={() => addToList(list._id)}>
-                      <View style={s.favListIcon}><Text>❤️</Text></View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.favListName}>{list.name}</Text>
-                        <Text style={s.favListCount}>{list.opportunities?.length || 0} saved</Text>
-                      </View>
-                      <Text style={s.favListArrow}>→</Text>
-                    </TouchableOpacity>
-                  ))}
-                  <TouchableOpacity style={s.favNewListBtn} onPress={() => { setFavModalVisible(false); navigation.navigate('Favourites'); }}>
-                    <Text style={s.favNewListBtnText}>+ Create New List</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-
-              <TouchableOpacity style={s.favCancelBtn} onPress={() => setFavModalVisible(false)}>
-                <Text style={s.favCancelText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </Modal>
-      )}
     </View>
   );
 };
@@ -539,23 +308,14 @@ const makeStyles = (t) => StyleSheet.create({
   badge: { position: 'absolute', top: 0, right: 0, backgroundColor: t.danger, borderRadius: 9, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 3 },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   logoutButton: { padding: 5 },
-  // Admin panel
   adminPanel: { marginBottom: 12, gap: 8 },
   adminCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: t.bgCard, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: t.border, borderLeftWidth: 4, gap: 12 },
   adminCardIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   adminCardTitle: { fontSize: 14, fontWeight: 'bold', color: t.text },
   adminCardSub: { fontSize: 12, color: t.textMuted, marginTop: 2 },
-  // Search
   searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: t.bgCard, borderRadius: 12, paddingHorizontal: 12, marginBottom: 10, borderWidth: 1, borderColor: t.border, elevation: 1 },
   searchIcon: { marginRight: 8 },
   searchInput: { flex: 1, padding: 12, fontSize: 16, color: t.text },
-  // Tabs
-  tabBar: { flexDirection: 'row', backgroundColor: t.bgCard, borderRadius: 12, marginBottom: 10, elevation: 2, overflow: 'hidden', borderWidth: 1, borderColor: t.border },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, gap: 5 },
-  tabActive: { borderBottomWidth: 3, borderBottomColor: t.accent, backgroundColor: t.accentBg },
-  tabLabel: { fontSize: 13, color: t.textMuted, fontWeight: '600' },
-  tabLabelActive: { color: t.accent },
-  // Category chips
   categoryScroll: { marginBottom: 10 },
   categoryScrollContent: { paddingRight: 10, gap: 8 },
   categoryChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: t.bgCard, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1.5, borderColor: t.border, gap: 5, elevation: 1 },
@@ -568,13 +328,11 @@ const makeStyles = (t) => StyleSheet.create({
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   sectionTitle: { fontSize: 17, fontWeight: 'bold', color: t.text },
   sectionCount: { fontSize: 13, color: t.textMuted },
-  // Card
   publisherRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 6 },
   publisherThumb: { width: 22, height: 22, borderRadius: 11 },
   publisherThumbPlaceholder: { width: 22, height: 22, borderRadius: 11, backgroundColor: t.bgCardAlt, justifyContent: 'center', alignItems: 'center' },
   publisherThumbText: { fontSize: 11, fontWeight: 'bold', color: t.textSub },
   publisherName: { fontSize: 12, color: t.accent, fontWeight: '600' },
-  noListsSubText: { fontSize: 13, color: t.textMuted, textAlign: 'center', marginBottom: 16, marginTop: 6 },
   card: { backgroundColor: t.bgCard, borderRadius: 12, padding: 15, marginBottom: 12, elevation: 3, borderLeftWidth: 4, borderLeftColor: t.accent, borderWidth: 1, borderColor: t.border },
   cardImage: { width: '100%', height: 150, borderRadius: 8, marginBottom: 10 },
   cardImagePlaceholder: { width: '100%', height: 90, borderRadius: 8, marginBottom: 10, backgroundColor: t.accentBg, justifyContent: 'center', alignItems: 'center' },
@@ -583,8 +341,6 @@ const makeStyles = (t) => StyleSheet.create({
   cardHeaderLeft: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   categoryBadge: { backgroundColor: t.accentBg, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   categoryText: { color: t.accent, fontSize: 11, fontWeight: 'bold', textTransform: 'capitalize' },
-  ratingBadge: { backgroundColor: t.warningBg, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  ratingText: { color: t.warning, fontSize: 11, fontWeight: 'bold' },
   closedBadge: { backgroundColor: '#fde8e8', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   closedBadgeText: { color: '#e74c3c', fontSize: 11, fontWeight: 'bold' },
   ownBadge: { backgroundColor: t.accentBg, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
@@ -598,42 +354,14 @@ const makeStyles = (t) => StyleSheet.create({
   fundraiserMiniBarBg: { height: 5, backgroundColor: t.border, borderRadius: 3, overflow: 'hidden', marginBottom: 3 },
   fundraiserMiniBarFill: { height: '100%', borderRadius: 3 },
   fundraiserMiniPct: { fontSize: 10, color: t.textMuted },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, flexWrap: 'wrap', gap: 6 },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
   cardSpots: { color: t.success, fontWeight: 'bold', fontSize: 13 },
-  footerRight: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  voteBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: t.bgCardAlt, borderRadius: 16, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: t.border },
-  voteBtnLikeActive: { backgroundColor: t.accentBg, borderColor: t.accent },
-  voteBtnDislikeActive: { backgroundColor: t.dangerBg, borderColor: t.danger },
-  voteBtnText: { fontSize: 12, color: t.textSub, fontWeight: '600' },
-  heartButton: { backgroundColor: t.dangerBg, borderRadius: 18, padding: 6 },
   applyBadge: { backgroundColor: t.accent, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 5 },
   applyBadgeOwn: { backgroundColor: t.textMuted },
   applyBadgeText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
-  tabLoadingBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 6, gap: 8, backgroundColor: t.accentBg, borderRadius: 8, marginBottom: 6 },
-  tabLoadingText: { fontSize: 12, color: t.accent, fontWeight: '600' },
   emptyContainer: { alignItems: 'center', marginTop: 50 },
   emptyText: { fontSize: 18, fontWeight: 'bold', color: t.text, marginTop: 15 },
   emptySubText: { fontSize: 14, color: t.textMuted, marginTop: 5 },
-  // Favourites modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  favModal: { backgroundColor: t.bgCard, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 30, borderTopWidth: 1, borderColor: t.border },
-  favModalHandle: { width: 40, height: 4, backgroundColor: t.border, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
-  favModalTitle: { fontSize: 20, fontWeight: 'bold', color: t.text, marginBottom: 4 },
-  favModalOppTitle: { fontSize: 14, color: t.textMuted, marginBottom: 16 },
-  favModalHint: { fontSize: 13, color: t.textMuted, marginBottom: 8 },
-  noListsContainer: { alignItems: 'center', paddingVertical: 10 },
-  noListsText: { color: t.textMuted, fontSize: 15, marginBottom: 16 },
-  favActionBtn: { backgroundColor: t.danger, borderRadius: 10, padding: 14, alignItems: 'center', width: '100%', marginBottom: 10 },
-  favActionBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-  favListItem: { flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: t.bgCardAlt, borderRadius: 10, marginBottom: 8 },
-  favListIcon: { width: 36, height: 36, backgroundColor: t.dangerBg, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  favListName: { fontSize: 15, fontWeight: 'bold', color: t.text },
-  favListCount: { fontSize: 12, color: t.textMuted, marginTop: 2 },
-  favListArrow: { fontSize: 18, color: t.danger, fontWeight: 'bold' },
-  favNewListBtn: { padding: 12, alignItems: 'center', marginTop: 4 },
-  favNewListBtnText: { color: t.accent, fontWeight: 'bold', fontSize: 15 },
-  favCancelBtn: { marginTop: 8, padding: 12, alignItems: 'center', borderTopWidth: 1, borderTopColor: t.borderLight },
-  favCancelText: { color: t.textMuted, fontSize: 15 },
 });
 
 export default OpportunityListScreen;

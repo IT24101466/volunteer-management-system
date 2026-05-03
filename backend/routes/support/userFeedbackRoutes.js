@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const { protect } = require('../middleware/authMiddleware');
+const { protect } = require('../../middleware/authMiddleware');
 const {
   createFeedback, getMyFeedbacks, updateFeedback, deleteFeedback,
   getAllFeedbacks, replyToFeedback
-} = require('../controllers/userFeedbackController');
+} = require('../../controllers/support/userFeedbackController');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),

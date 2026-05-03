@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl, Modal, TextInput,
-  ScrollView, Image
+  ScrollView, Image, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useToast } from '../../components/Toast';
@@ -442,6 +442,7 @@ const ManageMyFundraiserScreen = ({ route, navigation }) => {
         animationType="slide"
         onRequestClose={() => setEditVisible(false)}
       >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setEditVisible(false)}>
           <View style={styles.editModal} onStartShouldSetResponder={() => true}>
             <View style={styles.modalHandle} />
@@ -498,6 +499,7 @@ const ManageMyFundraiserScreen = ({ route, navigation }) => {
             </View>
           </View>
         </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

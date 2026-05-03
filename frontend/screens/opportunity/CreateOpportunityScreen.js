@@ -49,7 +49,10 @@ const CreateOpportunityScreen = ({ navigation }) => {
     setShowPicker(Platform.OS === 'ios');
     if (event.type === 'dismissed') return;
     if (selected) {
-      const iso = selected.toISOString().substring(0, 10);
+      const y = selected.getFullYear();
+      const m = String(selected.getMonth() + 1).padStart(2, '0');
+      const d = String(selected.getDate()).padStart(2, '0');
+      const iso = `${y}-${m}-${d}`;
       if (pickerTarget === 'start') setStartDate(iso);
       else setEndDate(iso);
     }

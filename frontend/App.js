@@ -16,23 +16,25 @@ import LoginScreen from './screens/auth/LoginScreen';
 import RegisterScreen from './screens/auth/RegisterScreen';
 
 // Opportunity Screens
-import OpportunityListScreen from './screens/opportunity/OpportunityListScreen';
-import OpportunityDetailScreen from './screens/opportunity/OpportunityDetailScreen';
-import CreateOpportunityScreen from './screens/opportunity/CreateOpportunityScreen';
-import CreatorOpportunityDetailScreen from './screens/opportunity/CreatorOpportunityDetailScreen';
-import MyCreatedOpportunitiesScreen from './screens/opportunity/MyCreatedOpportunitiesScreen';
-import ManageApplicationsScreen from './screens/opportunity/ManageApplicationsScreen';
-import ManageFundraisersScreen from './screens/opportunity/ManageFundraisersScreen';
-import AllCreatorApplicationsScreen from './screens/opportunity/AllCreatorApplicationsScreen';
+// ── OPPORTUNITY MANAGEMENT ─────────────────────────────────────────────────
+import OpportunityListScreen from './screens/opportunity/OpportunityListScreen';         // View: browse all opportunities
+import OpportunityDetailScreen from './screens/opportunity/OpportunityDetailScreen';     // View: public detail page
+import CreateOpportunityScreen from './screens/opportunity/CreateOpportunityScreen';     // Create: new opportunity form
+import CreatorOpportunityDetailScreen from './screens/opportunity/CreatorOpportunityDetailScreen'; // Manage: edit / close / delete
+import MyCreatedOpportunitiesScreen from './screens/opportunity/MyCreatedOpportunitiesScreen';     // View: list of own opportunities
+import ManageApplicationsScreen from './screens/opportunity/ManageApplicationsScreen';   // Manage: review applications
+import ManageFundraisersScreen from './screens/opportunity/ManageFundraisersScreen';     // Manage: linked fundraisers
+import AllCreatorApplicationsScreen from './screens/opportunity/AllCreatorApplicationsScreen'; // View: all applications across opportunities
+// ──────────────────────────────────────────────────────────────────────────
 
 // Application Screens
 import ApplyScreen from './screens/application/ApplyScreen';
 import MyApplicationsScreen from './screens/application/MyApplicationsScreen';
 
 // Feedback / Admin Screens
-import SubmitFeedbackScreen from './screens/feedback/SubmitFeedbackScreen';
-import FeedbackScreen from './screens/feedback/FeedbackScreen';
-import AdminFeedbackScreen from './screens/feedback/AdminFeedbackScreen';
+import SubmitFeedbackScreen from './screens/support/SubmitFeedbackScreen';
+import FeedbackScreen from './screens/support/FeedbackScreen';
+import AdminFeedbackScreen from './screens/support/AdminFeedbackScreen';
 import AdminAnalysisScreen from './screens/admin/AdminAnalysisScreen';
 
 // Profile Screen
@@ -153,14 +155,16 @@ const DonationsStack = () => (
 
 const HomeStack = () => (
   <Stack.Navigator>
-    <Stack.Screen name="OpportunityList" component={OpportunityListScreen} options={{ title: 'Kind Hands' }} />
-    <Stack.Screen name="OpportunityDetail" component={OpportunityDetailScreen} options={{ title: 'Details' }} />
-    <Stack.Screen name="CreateOpportunity" component={CreateOpportunityScreen} options={{ title: 'Post Opportunity' }} />
+    {/* ── OPPORTUNITY MANAGEMENT (HomeStack) ── */}
+    <Stack.Screen name="OpportunityList" component={OpportunityListScreen} options={{ title: 'Kind Hands' }} />          {/* View: browse all */}
+    <Stack.Screen name="OpportunityDetail" component={OpportunityDetailScreen} options={{ title: 'Details' }} />          {/* View: public detail */}
+    <Stack.Screen name="CreateOpportunity" component={CreateOpportunityScreen} options={{ title: 'Post Opportunity' }} /> {/* Create opportunity */}
     <Stack.Screen name="Apply" component={ApplyScreen} options={{ title: 'Apply' }} />
-    <Stack.Screen name="CreatorOpportunityDetail" component={CreatorOpportunityDetailScreen} options={{ title: 'Manage Opportunity' }} />
-    <Stack.Screen name="ManageApplications" component={ManageApplicationsScreen} options={{ title: 'Manage Applications' }} />
-    <Stack.Screen name="AllCreatorApplications" component={AllCreatorApplicationsScreen} options={{ title: 'All Applications' }} />
-    <Stack.Screen name="ManageFundraisers" component={ManageFundraisersScreen} options={{ title: 'Manage Fundraisers' }} />
+    <Stack.Screen name="CreatorOpportunityDetail" component={CreatorOpportunityDetailScreen} options={{ title: 'Manage Opportunity' }} /> {/* Edit / Close / Delete */}
+    <Stack.Screen name="ManageApplications" component={ManageApplicationsScreen} options={{ title: 'Manage Applications' }} />           {/* Manage applications */}
+    <Stack.Screen name="AllCreatorApplications" component={AllCreatorApplicationsScreen} options={{ title: 'All Applications' }} />       {/* View all applications */}
+    <Stack.Screen name="ManageFundraisers" component={ManageFundraisersScreen} options={{ title: 'Manage Fundraisers' }} />               {/* Manage fundraisers */}
+    {/* ─────────────────────────────────────── */}
     <Stack.Screen name="SubmitFeedback" component={SubmitFeedbackScreen} options={{ title: 'Submit Feedback' }} />
     <Stack.Screen name="Donate" component={DonateScreen} options={{ title: 'Make a Donation' }} />
     <Stack.Screen name="FundraiserList" component={FundraiserListScreen} options={{ title: 'Support a Cause' }} />
@@ -193,11 +197,13 @@ const ProfileStack = () => (
     <Stack.Screen name="ProfileMain" component={ProfileScreen} options={{ title: 'My Profile' }} />
     <Stack.Screen name="MyApplications" component={MyApplicationsScreen} options={{ title: 'My Applications' }} />
     <Stack.Screen name="Apply" component={ApplyScreen} options={{ title: 'Application' }} />
-    <Stack.Screen name="MyCreatedOpportunities" component={MyCreatedOpportunitiesScreen} options={{ title: 'My Created Opportunities' }} />
-    <Stack.Screen name="CreatorOpportunityDetail" component={CreatorOpportunityDetailScreen} options={{ title: 'Manage Opportunity' }} />
-    <Stack.Screen name="ManageApplications" component={ManageApplicationsScreen} options={{ title: 'Manage Applications' }} />
-    <Stack.Screen name="AllCreatorApplications" component={AllCreatorApplicationsScreen} options={{ title: 'All Applications' }} />
-    <Stack.Screen name="ManageFundraisers" component={ManageFundraisersScreen} options={{ title: 'Manage Fundraisers' }} />
+    {/* ── OPPORTUNITY MANAGEMENT (ProfileStack) ── */}
+    <Stack.Screen name="MyCreatedOpportunities" component={MyCreatedOpportunitiesScreen} options={{ title: 'My Created Opportunities' }} /> {/* View own opportunities */}
+    <Stack.Screen name="CreatorOpportunityDetail" component={CreatorOpportunityDetailScreen} options={{ title: 'Manage Opportunity' }} />    {/* Edit / Close / Delete */}
+    <Stack.Screen name="ManageApplications" component={ManageApplicationsScreen} options={{ title: 'Manage Applications' }} />              {/* Manage applications */}
+    <Stack.Screen name="AllCreatorApplications" component={AllCreatorApplicationsScreen} options={{ title: 'All Applications' }} />          {/* View all applications */}
+    <Stack.Screen name="ManageFundraisers" component={ManageFundraisersScreen} options={{ title: 'Manage Fundraisers' }} />                  {/* Manage fundraisers */}
+    {/* ─────────────────────────────────────────── */}
     <Stack.Screen name="SubmitFeedback" component={SubmitFeedbackScreen} options={{ title: 'Submit Feedback' }} />
     <Stack.Screen name="FavouritesList" component={FavouritesScreen} options={{ title: 'My Favourites' }} />
     <Stack.Screen name="FavouriteDetail" component={FavouriteDetailScreen} options={{ title: 'Favourites' }} />

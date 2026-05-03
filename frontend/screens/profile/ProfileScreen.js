@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, Image
@@ -14,6 +14,7 @@ const ProfileScreen = ({ navigation }) => {
   const t = useTheme();
   const isAdmin = user?.role === 'admin';
   const s = makeStyles(t);
+  const [showMore, setShowMore] = useState(false);
 
   const currentPhotoUri = user?.profileImage ? `${BASE_URL}/${user.profileImage}` : null;
 
@@ -76,9 +77,22 @@ const ProfileScreen = ({ navigation }) => {
           <NavRow icon="document-text-outline" label="My Applications" onPress={() => navigation.navigate('MyApplications')} />
           <NavRow icon="briefcase-outline" label="My Created Opportunities" onPress={() => navigation.navigate('MyCreatedOpportunities')} />
           <NavRow icon="heart-outline" label="My Favourites" onPress={() => navigation.navigate('FavouritesList')} color={t.danger} />
-          <NavRow icon="thumbs-up-outline" label="My Likes & Comments" onPress={() => navigation.navigate('MyLikesComments')} />
           <NavRow icon="checkmark-circle-outline" label="Verify Contributions" onPress={() => navigation.navigate('AllContributions')} color={t.success} />
-          <NavRow icon="chatbubble-ellipses-outline" label="Feedbacks" onPress={() => navigation.navigate('Feedback')} color={t.purple} />
+
+          <TouchableOpacity style={s.moreBtn} onPress={() => setShowMore(v => !v)}>
+            <View style={s.navLeft}>
+              <Ionicons name={showMore ? 'chevron-up-circle-outline' : 'ellipsis-horizontal-circle-outline'} size={18} color={t.textMuted} style={{ marginRight: 10 }} />
+              <Text style={s.moreBtnText}>{showMore ? 'Less' : 'More'}</Text>
+            </View>
+            <Ionicons name={showMore ? 'chevron-up' : 'chevron-down'} size={16} color={t.textMuted} />
+          </TouchableOpacity>
+
+          {showMore && (
+            <>
+              <NavRow icon="thumbs-up-outline" label="My Likes & Comments" onPress={() => navigation.navigate('MyLikesComments')} />
+              <NavRow icon="chatbubble-ellipses-outline" label="Help Us Improve" onPress={() => navigation.navigate('Feedback')} color={t.purple} />
+            </>
+          )}
         </View>
       )}
 
@@ -112,6 +126,8 @@ const makeStyles = (t) => StyleSheet.create({
   navButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 13, borderRadius: 10, backgroundColor: t.bgCardAlt, marginBottom: 8 },
   navLeft: { flexDirection: 'row', alignItems: 'center' },
   navButtonText: { fontSize: 15, color: t.text },
+  moreBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 13, borderRadius: 10, borderWidth: 1, borderColor: t.border, borderStyle: 'dashed', marginBottom: 8 },
+  moreBtnText: { fontSize: 15, color: t.textMuted, fontWeight: '600' },
   logoutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: t.danger, borderRadius: 12, padding: 16, marginBottom: 30 },
   logoutButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });

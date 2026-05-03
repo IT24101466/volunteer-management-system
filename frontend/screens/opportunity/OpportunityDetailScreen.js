@@ -13,6 +13,9 @@ import { AuthContext } from '../../context/AuthContext';
 
 const BASE_URL = 'https://volunteer-management-system-myg0.onrender.com';
 
+// ── COMMENTS ──────────────────────────────────────────────────────────────────
+// Reusable component that renders a single comment (and its threaded replies).
+// Also handles like/dislike voting on individual comments.
 const CommentItem = ({ item, parentId, userId, handlers }) => {
   const {
     handleDeleteComment, handleCommentVote,
@@ -150,7 +153,9 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [isCreator, setIsCreator] = useState(false);
   const [isPast, setIsPast] = useState(false);
-  const [myApplicationStatus, setMyApplicationStatus] = useState(null);
+  // ── APPLICATION MANAGEMENT state ────────────────────────────────────────────
+  const [myApplicationStatus, setMyApplicationStatus] = useState(null); // null | 'pending' | 'approved' | 'rejected' | 'completed'
+  // ────────────────────────────────────────────────────────────────────────────
 
   const [myContributions, setMyContributions] = useState([]);
 
@@ -164,59 +169,68 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
   const [donors, setDonors] = useState([]);
   const [donorsLoading, setDonorsLoading] = useState(false);
 
+  // ── COMMENTS state ──────────────────────────────────────────────────────────
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [commentPhoto, setCommentPhoto] = useState(null);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [showCommentForm, setShowCommentForm] = useState(false);
 
+  // comment edit state
   const [editingComment, setEditingComment] = useState(null);
   const [editText, setEditText] = useState('');
   const [editPhoto, setEditPhoto] = useState(null);
   const [editSubmitting, setEditSubmitting] = useState(false);
 
+  // comment reply state
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [replyPhoto, setReplyPhoto] = useState(null);
   const [replySubmitting, setReplySubmitting] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState({});
+  // ────────────────────────────────────────────────────────────────────────────
 
   const scrollViewRef = useRef(null);
 
+  // ── RATING state ────────────────────────────────────────────────────────────
   const [userRating, setUserRating] = useState(null);
   const [averageRating, setAverageRating] = useState(null);
   const [ratingCount, setRatingCount] = useState(0);
   const [ratingLoading, setRatingLoading] = useState(false);
+  // ────────────────────────────────────────────────────────────────────────────
 
+  // ── FAVOURITES MANAGEMENT state ──────────────────────────────────────────────
   const [favLists, setFavLists] = useState([]);
   const [favModalVisible, setFavModalVisible] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
+  // ─────────────────────────────────────────────────────────────────────────────
 
   const fetchData = async () => {
     try {
       const fetches = [
         api.get(`/api/opportunities/${opportunityId}`),
-        api.get(`/api/comments/opportunity/${opportunityId}`),
-        api.get(`/api/opportunity-ratings/${opportunityId}`)
+        api.get(`/api/comments/opportunity/${opportunityId}`),    // COMMENTS — fetch all comments
+        api.get(`/api/opportunity-ratings/${opportunityId}`)      // RATING   — fetch average + user's rating
       ];
       if (user) fetches.push(api.get('/api/applications/my'));
 
       const results = await Promise.all(fetches);
       const opp = results[0].data;
       setOpportunity(opp);
-      setComments(results[1].data || []);
+      setComments(results[1].data || []);       // COMMENTS — populate comment list
       setIsCreator(opp.createdBy?._id === user?.id);
       if (opp.endDate && new Date() > new Date(opp.endDate)) setIsPast(true);
-      setUserRating(results[2].data.userRating);
-      setAverageRating(results[2].data.averageRating);
-      setRatingCount(results[2].data.ratingCount);
+      setUserRating(results[2].data.userRating);        // RATING — user's own star rating
+      setAverageRating(results[2].data.averageRating);  // RATING — overall average
+      setRatingCount(results[2].data.ratingCount);      // RATING — total number of ratings
 
+      // ── APPLICATION MANAGEMENT — check if user has already applied ────────────
       if (user && results[3]) {
         const myApp = (results[3].data || []).find(a =>
           a.opportunity?._id === opportunityId || a.opportunity === opportunityId
         );
         const status = myApp?.status || null;
-        setMyApplicationStatus(status);
+        setMyApplicationStatus(status); // drives Apply button state and contribution card visibility
 
         if (status === 'approved') {
           try {
@@ -228,6 +242,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
           } catch {}
         }
       }
+      // ────────────────────────────────────────────────────────────────────────
     } catch {
       toast.error('Error', 'Failed to load opportunity details');
     } finally {
@@ -235,6 +250,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  // ── RATING — submit or remove a star rating (POST / DELETE /api/opportunity-ratings/:id) ──
   const handleRateOpportunity = async (star) => {
     if (!user) { toast.warning('Login required', 'Please login to rate'); return; }
     setRatingLoading(true);
@@ -258,7 +274,9 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
   };
 
   useEffect(() => { fetchData(); }, []);
+/////////////
 
+  // ── FAVOURITES MANAGEMENT — open modal and fetch user's lists (GET /api/favourites) ──
   const handleOpenFav = async () => {
     setFavLoading(true);
     setFavModalVisible(true);
@@ -273,6 +291,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  // ── FAVOURITES MANAGEMENT — add this opportunity to an existing list (POST /api/favourites/:id/add) ──
   const handleAddToFavList = async (listId) => {
     setFavModalVisible(false);
     try {
@@ -283,6 +302,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  // ── FAVOURITES MANAGEMENT — create a new list then add this opportunity to it ──
   const handleCreateFavAndAdd = async () => {
     setFavModalVisible(false);
     try {
@@ -293,7 +313,9 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
       toast.error('Error', 'Failed to save');
     }
   };
+  // ─────────────────────────────────────────────────────────────────────────────
 
+  // ── LIKES — toggle like/dislike on the opportunity (POST /api/votes) ────────
   const handleVote = async (vote) => {
     try {
       const res = await api.post('/api/votes', { targetId: opportunityId, targetType: 'opportunity', vote });
@@ -301,6 +323,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
     } catch { toast.error('Error', 'Failed to vote'); }
   };
 
+  // ── LIKES — toggle like/dislike on a comment (POST /api/votes, targetType: 'comment') ──
   const handleCommentVote = async (comment, vote) => {
     try {
       const res = await api.post('/api/votes', { targetId: comment._id, targetType: 'comment', vote });
@@ -317,6 +340,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
     } catch { toast.error('Error', 'Failed to vote'); }
   };
 
+  // ── COMMENTS — pick photo for a new comment ─────────────────────────────────
   const pickCommentPhoto = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) return;
@@ -324,6 +348,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
     if (!result.canceled) setCommentPhoto(result.assets[0]);
   };
 
+  // ── COMMENTS — pick photo when editing an existing comment ──────────────────
   const pickEditPhoto = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) return;
@@ -331,6 +356,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
     if (!result.canceled) setEditPhoto(result.assets[0]);
   };
 
+  // ── COMMENTS — submit a new comment (POST /api/comments) ───────────────────
   const handleAddComment = async () => {
     if (!commentText.trim()) return;
     setCommentSubmitting(true);
@@ -353,6 +379,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  // ── COMMENTS — pick photo for a reply ───────────────────────────────────────
   const pickReplyPhoto = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) return;
@@ -360,6 +387,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
     if (!result.canceled) setReplyPhoto(result.assets[0]);
   };
 
+  // ── COMMENTS — submit a threaded reply (POST /api/comments with parentCommentId) ──
   const handleAddReply = async () => {
     if (!replyText.trim() || !replyingTo) return;
     setReplySubmitting(true);
@@ -391,6 +419,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  // ── COMMENTS — delete a comment or reply (DELETE /api/comments/:id) ─────────
   const handleDeleteComment = (commentId, parentId) => {
     confirm.show({
       title: 'Delete Comment',
@@ -412,12 +441,14 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
     });
   };
 
+  // ── COMMENTS — open the edit modal pre-filled with existing comment data ─────
   const openEditComment = (comment) => {
     setEditingComment(comment);
     setEditText(comment.text);
     setEditPhoto(null);
   };
 
+  // ── COMMENTS — save edited comment text/photo (PUT /api/comments/:id) ───────
   const handleSaveEdit = async () => {
     if (!editText.trim()) return;
     setEditSubmitting(true);
@@ -442,7 +473,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
       setEditSubmitting(false);
     }
   };
-
+//////
   const handleLogContribution = async () => {
     if (!contribHours || isNaN(contribHours) || Number(contribHours) < 0.5) {
       toast.warning('Invalid', 'Please enter at least 0.5 hours');
@@ -533,6 +564,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
             </View>
           )}
         </View>
+        {/* ── LIKES — like / dislike buttons for the opportunity ── */}
         <View style={styles.voteRow}>
           <TouchableOpacity style={[styles.voteBtn, likeActive && styles.voteBtnLikeActive]} onPress={() => handleVote('like')}>
             <Ionicons name="thumbs-up-outline" size={14} color="#fff" />
@@ -543,6 +575,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
             <Text style={styles.voteBtnText}> {opportunity.dislikes || 0}</Text>
           </TouchableOpacity>
         </View>
+        {/* ─────────────────────────────────────────────────────── */}
       </View>
 
       {/* Details Card */}
@@ -624,7 +657,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
         );
       })}
 
-      {/* Actions */}
+      {/* ── APPLICATION MANAGEMENT — Apply Now button (visible to non-creators) ── */}
       <View style={styles.buttonContainer}>
         {isCreator ? (
           <TouchableOpacity style={styles.manageButton} onPress={() => navigation.navigate('CreatorOpportunityDetail', { opportunityId })}>
@@ -633,6 +666,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         ) : (
           <View style={styles.applyRow}>
+            {/* Apply button — disabled if ended, closed, or already applied */}
             <TouchableOpacity
               style={[styles.applyButton, (isPast || opportunity.status !== 'open') && styles.disabledButton]}
               onPress={() => {
@@ -646,7 +680,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
                   toast.info('Already Accepted', 'You have already been accepted for this opportunity.');
                   return;
                 }
-                navigation.navigate('Apply', { opportunity });
+                navigation.navigate('Apply', { opportunity }); // navigates to ApplyScreen (application submission)
               }}
               disabled={isPast || opportunity.status !== 'open'}
             >
@@ -654,6 +688,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
                 {isPast ? 'Opportunity Ended' : opportunity.status === 'closed' ? 'Applications Closed' : 'Apply Now'}
               </Text>
             </TouchableOpacity>
+            {/* ── FAVOURITES MANAGEMENT — bookmark button opens list picker modal ── */}
             {user && (
               <TouchableOpacity style={styles.saveButton} onPress={handleOpenFav}>
                 <Ionicons name="bookmark-outline" size={22} color="#2e86de" />
@@ -662,6 +697,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
           </View>
         )}
       </View>
+      {/* ────────────────────────────────────────────────────────────────────── */}
 
       {/* Contribution Stats — shown to accepted volunteers */}
       {myApplicationStatus === 'approved' && (
@@ -697,7 +733,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
         </View>
       )}
 
-      {/* Rate This Opportunity */}
+      {/* ── RATING — star rating card (visible to logged-in non-creators) ── */}
       {user && !isCreator && (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Rate This Opportunity</Text>
@@ -724,7 +760,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
         </View>
       )}
 
-      {/* Comments */}
+      {/* ── COMMENTS — comment list, add comment form, and reply form ── */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Comments {comments.length > 0 ? `(${comments.length})` : ''}</Text>
 
@@ -820,7 +856,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
         </TouchableOpacity>
       </Modal>
 
-      {/* Edit Comment Modal */}
+      {/* ── COMMENTS — edit comment modal ── */}
       <Modal visible={!!editingComment} transparent animationType="slide" onRequestClose={() => setEditingComment(null)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setEditingComment(null)}>
           <View style={styles.editModal} onStartShouldSetResponder={() => true}>
@@ -889,7 +925,7 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
       </Modal>
     </ScrollView>
 
-    {/* Favourites Modal */}
+    {/* ── FAVOURITES MANAGEMENT — list picker modal (select list or create new) ── */}
     <Modal visible={favModalVisible} transparent animationType="slide" onRequestClose={() => setFavModalVisible(false)}>
       <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setFavModalVisible(false)}>
         <View style={styles.editModal} onStartShouldSetResponder={() => true}>
@@ -984,16 +1020,18 @@ const styles = StyleSheet.create({
   saveButton: { backgroundColor: '#e8f4fd', borderRadius: 10, padding: 15, borderWidth: 1.5, borderColor: '#2e86de', justifyContent: 'center', alignItems: 'center' },
   manageButton: { backgroundColor: '#2e86de', borderRadius: 10, padding: 15, alignItems: 'center', marginBottom: 10, flexDirection: 'row', justifyContent: 'center' },
   manageButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  // ── FAVOURITES MANAGEMENT styles ─────────────────────────────────────────────
   favListItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
   favListItemText: { flex: 1, fontSize: 15, color: '#333', fontWeight: '600' },
   favListItemCount: { fontSize: 13, color: '#aaa', fontWeight: 'bold' },
-  // Rating
+  // ─────────────────────────────────────────────────────────────────────────────
+  // ── RATING styles ────────────────────────────────────────────────────────────
   ratingRow: { marginBottom: 6 },
   avgRatingText: { fontSize: 15, color: '#f39c12', fontWeight: 'bold' },
   noRatingText: { fontSize: 13, color: '#aaa' },
   ratingHint: { fontSize: 12, color: '#888', marginBottom: 8 },
   ratingStars: { flexDirection: 'row', gap: 6, alignItems: 'center' },
-  // Comments
+  // ── COMMENTS styles ──────────────────────────────────────────────────────────
   noFeedbackText: { color: '#999', fontSize: 14, textAlign: 'center', padding: 10 },
   addCommentButton: { marginBottom: 14, backgroundColor: '#9b59b6', borderRadius: 10, padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   addCommentButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },

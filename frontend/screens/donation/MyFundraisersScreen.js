@@ -162,18 +162,16 @@ const MyFundraisersScreen = ({ navigation }) => {
     );
   };
 
-  const renderSectionHeader = ({ section }) => (
-    <View style={styles.sectionHeader}>
-      <Ionicons
-        name={section.title === 'Standalone Fundraisers' ? 'cash-outline' : 'heart-outline'}
-        size={16}
-        color="#555"
-        style={{ marginRight: 6 }}
-      />
-      <Text style={styles.sectionHeaderText}>{section.title}</Text>
-      <Text style={styles.sectionCount}>{section.data.length}</Text>
-    </View>
-  );
+  const renderSectionHeader = ({ section }) => {
+    if (section.title === 'From Volunteering Opportunities') return null;
+    return (
+      <View style={styles.sectionHeader}>
+        <Ionicons name="cash-outline" size={16} color="#555" style={{ marginRight: 6 }} />
+        <Text style={styles.sectionHeaderText}>{section.title}</Text>
+        <Text style={styles.sectionCount}>{section.data.length}</Text>
+      </View>
+    );
+  };
 
   const renderPendingItem = ({ item }) => (
     <View style={styles.pendingCard}>

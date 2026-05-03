@@ -1,6 +1,6 @@
-const UserFeedback = require('../models/UserFeedback');
-const User = require('../models/User');
-const Notification = require('../models/Notification');
+const UserFeedback = require('../../models/support/UserFeedback');
+const User = require('../../models/User');
+const Notification = require('../../models/Notification');
 
 const createFeedback = async (req, res) => {
   try {

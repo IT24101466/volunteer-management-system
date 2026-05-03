@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, ActivityIndicator, Image,
-  Modal, TextInput, RefreshControl
+  Modal, TextInput, RefreshControl, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useToast } from '../../components/Toast';
@@ -511,6 +511,7 @@ const ManageApplicationsScreen = ({ route, navigation }) => {
 
       {/* Create Group Modal */}
       <Modal visible={createGroupModal} transparent animationType="slide" onRequestClose={() => setCreateGroupModal(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCreateGroupModal(false)}>
           <View style={styles.bottomSheet} onStartShouldSetResponder={() => true}>
             <View style={styles.sheetHandle} />
@@ -540,6 +541,7 @@ const ManageApplicationsScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Move to Group Modal */}

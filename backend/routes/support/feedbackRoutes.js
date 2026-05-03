@@ -2,14 +2,14 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const { protect } = require('../middleware/authMiddleware');
+const { protect } = require('../../middleware/authMiddleware');
 const {
   createFeedback,
   getFeedbackForOpportunity,
   getMyFeedback,
   updateFeedback,
   deleteFeedback
-} = require('../controllers/feedbackController');
+} = require('../../controllers/support/feedbackController');
 
 // Multer storage configuration for photo uploads
 const storage = multer.diskStorage({
