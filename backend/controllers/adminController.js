@@ -4,7 +4,7 @@ const Application = require('../models/Application');
 const Contribution = require('../models/Contribution');
 const User = require('../models/User');
 const Goal = require('../models/Goal');
-const UserFeedback = require('../models/UserFeedback');
+const UserFeedback = require('../models/support/UserFeedback');
 
 const getAdminStats = async (req, res) => {
   try {
