@@ -111,7 +111,7 @@ const AllContributionsScreen = () => {
         )}
       />
 
-      {/* Detail Modal */}
+      {/* Detail Model */}
       {selected && (
         <Modal visible transparent animationType="slide" onRequestClose={() => setSelected(null)}>
           <View style={styles.modalOverlay}>

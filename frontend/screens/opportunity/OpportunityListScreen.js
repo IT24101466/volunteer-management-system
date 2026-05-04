@@ -3,7 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, FlatList, TouchableOpacity,
   StyleSheet, TextInput, ActivityIndicator,
-  RefreshControl, Image, ScrollView
+  RefreshControl, Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useToast } from '../../components/Toast';
@@ -12,16 +12,6 @@ import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
 const BASE_URL = 'https://volunteer-management-system-myg0.onrender.com';
-
-const CATEGORIES = [
-  { key: '', label: 'All', icon: '🌐' },
-  { key: 'education', label: 'Education', icon: '🎓' },
-  { key: 'environment', label: 'Environment', icon: '🌿' },
-  { key: 'health', label: 'Health', icon: '🏥' },
-  { key: 'community', label: 'Community', icon: '🤝' },
-  { key: 'animals', label: 'Animals', icon: '🐾' },
-  { key: 'other', label: 'Other', icon: '📦' },
-];
 
 const OpportunityListScreen = ({ navigation }) => {
   const toast = useToast();
@@ -32,31 +22,26 @@ const OpportunityListScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const { user, logout } = useContext(AuthContext);
 
-  const applyLocalFilter = useCallback((all, searchTerm, category) => {
-    let filtered = all;
-    if (category) filtered = filtered.filter(o => o.category === category);
-    if (searchTerm) {
-      const lower = searchTerm.toLowerCase();
-      filtered = filtered.filter(o =>
-        o.title?.toLowerCase().includes(lower) ||
-        o.organization?.toLowerCase().includes(lower) ||
-        o.createdBy?.name?.toLowerCase().includes(lower) ||
-        o.description?.toLowerCase().includes(lower) ||
-        o.location?.toLowerCase().includes(lower)
-      );
-    }
-    return filtered;
+  const applyLocalFilter = useCallback((all, searchTerm) => {
+    if (!searchTerm) return all;
+    const lower = searchTerm.toLowerCase();
+    return all.filter(o =>
+      o.title?.toLowerCase().includes(lower) ||
+      o.organization?.toLowerCase().includes(lower) ||
+      o.createdBy?.name?.toLowerCase().includes(lower) ||
+      o.description?.toLowerCase().includes(lower) ||
+      o.location?.toLowerCase().includes(lower)
+    );
   }, []);
 
-  const fetchOpportunities = useCallback(async (searchTerm = '', category = '') => {
+  const fetchOpportunities = useCallback(async (searchTerm = '') => {
     try {
       const response = await api.get('/api/opportunities');
       setAllOpportunities(response.data);
-      setOpportunities(applyLocalFilter(response.data, searchTerm, category));
+      setOpportunities(applyLocalFilter(response.data, searchTerm));
     } catch {
       toast.error('Error', 'Failed to load opportunities');
     } finally {
@@ -67,7 +52,7 @@ const OpportunityListScreen = ({ navigation }) => {
 
   useEffect(() => {
     setLoading(true);
-    fetchOpportunities(search, selectedCategory);
+    fetchOpportunities(search);
   }, []);
 
   const fetchUnreadCount = async () => {
@@ -79,24 +64,19 @@ const OpportunityListScreen = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      fetchOpportunities(search, selectedCategory);
+      fetchOpportunities(search);
       fetchUnreadCount();
     }, [])
   );
 
   const handleSearch = (text) => {
     setSearch(text);
-    setOpportunities(applyLocalFilter(allOpportunities, text, selectedCategory));
-  };
-
-  const handleCategory = (cat) => {
-    setSelectedCategory(cat);
-    setOpportunities(applyLocalFilter(allOpportunities, search, cat));
+    setOpportunities(applyLocalFilter(allOpportunities, text));
   };
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchOpportunities(search, selectedCategory);
+    fetchOpportunities(search);
   };
 
   const s = makeStyles(t);
@@ -194,27 +174,10 @@ const OpportunityListScreen = ({ navigation }) => {
   };
 
   const listHeader = () => (
-    <>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.categoryScroll} contentContainerStyle={s.categoryScrollContent}>
-        {CATEGORIES.map(cat => (
-          <TouchableOpacity
-            key={cat.key}
-            style={[s.categoryChip, selectedCategory === cat.key && s.categoryChipActive]}
-            onPress={() => handleCategory(cat.key)}
-          >
-            <Text style={s.categoryChipIcon}>{cat.icon}</Text>
-            <Text style={[s.categoryChipLabel, selectedCategory === cat.key && s.categoryChipLabelActive]}>
-              {cat.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <View style={s.sectionHeader}>
-        <Text style={s.sectionTitle}>Opportunities</Text>
-        <Text style={s.sectionCount}>{opportunities.length} found</Text>
-      </View>
-    </>
+    <View style={s.sectionHeader}>
+      <Text style={s.sectionTitle}>Opportunities</Text>
+      <Text style={s.sectionCount}>{opportunities.length} found</Text>
+    </View>
   );
 
   if (loading) return <View style={s.centered}><ActivityIndicator size="large" color={t.accent} /></View>;

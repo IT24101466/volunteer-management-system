@@ -17,7 +17,7 @@ const statusColor = (s) => {
   return '#f39c12';
 };
 
-const TABS = ['All', 'Pending', 'Confirmed', 'Rejected'];
+const TABS = ['All', 'Confirmed', 'Rejected'];
 
 const ManageMyFundraiserScreen = ({ route, navigation }) => {
   const { fundraiserId } = route.params;
@@ -190,28 +190,6 @@ const ManageMyFundraiserScreen = ({ route, navigation }) => {
           </Text>
         </View>
 
-        {item.status === 'pending' && (
-          <View style={styles.inlineActions}>
-            <TouchableOpacity
-              style={styles.acceptBtn}
-              onPress={() => handleStatusUpdate(item._id, 'confirmed')}
-              disabled={!!isUpdating}
-            >
-              {isUpdating && statusUpdating === item._id + 'confirmed'
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Ionicons name="checkmark" size={16} color="#fff" />}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.rejectBtn}
-              onPress={() => handleStatusUpdate(item._id, 'rejected')}
-              disabled={!!isUpdating}
-            >
-              {isUpdating && statusUpdating === item._id + 'rejected'
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Ionicons name="close" size={16} color="#fff" />}
-            </TouchableOpacity>
-          </View>
-        )}
       </TouchableOpacity>
     );
   };
@@ -329,7 +307,7 @@ const ManageMyFundraiserScreen = ({ route, navigation }) => {
         }
       />
 
-      {/* Donation Detail Modal */}
+      {/* Donation Detail Model */}
       <Modal
         visible={!!detailDonation}
         transparent
@@ -391,40 +369,6 @@ const ManageMyFundraiserScreen = ({ route, navigation }) => {
                   </View>
                 )}
 
-                {detailDonation.status === 'pending' && (
-                  <View style={styles.detailActions}>
-                    <TouchableOpacity
-                      style={styles.detailAcceptBtn}
-                      onPress={() => handleStatusUpdate(detailDonation._id, 'confirmed')}
-                      disabled={!!statusUpdating}
-                    >
-                      {statusUpdating === detailDonation._id + 'confirmed'
-                        ? <ActivityIndicator color="#fff" />
-                        : (
-                          <>
-                            <Ionicons name="checkmark-circle-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
-                            <Text style={styles.detailActionBtnText}>Accept</Text>
-                          </>
-                        )
-                      }
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.detailRejectBtn}
-                      onPress={() => handleStatusUpdate(detailDonation._id, 'rejected')}
-                      disabled={!!statusUpdating}
-                    >
-                      {statusUpdating === detailDonation._id + 'rejected'
-                        ? <ActivityIndicator color="#fff" />
-                        : (
-                          <>
-                            <Ionicons name="close-circle-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
-                            <Text style={styles.detailActionBtnText}>Reject</Text>
-                          </>
-                        )
-                      }
-                    </TouchableOpacity>
-                  </View>
-                )}
 
                 <TouchableOpacity style={styles.closeModalBtn} onPress={() => setDetailDonation(null)}>
                   <Text style={styles.closeModalBtnText}>Close</Text>
@@ -435,7 +379,7 @@ const ManageMyFundraiserScreen = ({ route, navigation }) => {
         </TouchableOpacity>
       </Modal>
 
-      {/* Edit Modal */}
+      {/* Edit Model */}
       <Modal
         visible={editVisible}
         transparent

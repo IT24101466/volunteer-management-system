@@ -228,13 +228,11 @@ const ImpactScreen = ({ navigation }) => {
               <Text style={styles.heroBadgeValue}>{points?.completionPoints || 0}</Text>
               <Text style={styles.heroBadgeLabel}>completion</Text>
             </View>
-            {(points?.goalBonusPoints || 0) > 0 && (
-              <View style={styles.heroBadge}>
-                <Text style={styles.heroBadgeIcon}>🎯</Text>
-                <Text style={styles.heroBadgeValue}>{points.goalBonusPoints}</Text>
-                <Text style={styles.heroBadgeLabel}>goal bonus</Text>
-              </View>
-            )}
+            <View style={styles.heroBadge}>
+              <Text style={styles.heroBadgeIcon}>🎯</Text>
+              <Text style={styles.heroBadgeValue}>{points?.goalBonusPoints || 0}</Text>
+              <Text style={styles.heroBadgeLabel}>goal bonus</Text>
+            </View>
           </View>
         </View>
 
@@ -375,7 +373,7 @@ const ImpactScreen = ({ navigation }) => {
 
       </ScrollView>
 
-      {/* ── Goal Create / Edit Modal ── */}
+      {/* ── Goal Create / Edit Model ── */}
       <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={closeModal}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={closeModal} />
@@ -425,17 +423,6 @@ const ImpactScreen = ({ navigation }) => {
                     Earn <Text style={{ fontWeight: 'bold' }}>{gPreset.points} pts</Text> after creating this goal to receive <Text style={{ fontWeight: 'bold' }}>+{gPreset.bonus} bonus pts</Text>
                   </Text>
                 </View>
-              )}
-
-              {/* Start date (edit only) */}
-              {editingGoal && (
-                <>
-                  <Text style={styles.mLabel}>Start Date</Text>
-                  <TouchableOpacity style={styles.datePicker} onPress={() => { setPickerTarget('start'); setShowPicker(true); }}>
-                    <Ionicons name="calendar-outline" size={16} color="#9b59b6" style={{ marginRight: 8 }} />
-                    <Text style={styles.datePickerText}>{gStartDate ? fmt(gStartDate) : 'Select date'}</Text>
-                  </TouchableOpacity>
-                </>
               )}
 
               {/* End date */}

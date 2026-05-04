@@ -274,7 +274,7 @@ const OngoingOpportunitiesScreen = ({ navigation }) => {
         }
       />
 
-      {/* Log Contribution Modal */}
+      {/* Log Contribution Model */}
       <Modal visible={!!contribModal} transparent animationType="fade" onRequestClose={() => setContribModal(null)}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setContribModal(null)} />
@@ -342,7 +342,7 @@ const OngoingOpportunitiesScreen = ({ navigation }) => {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Edit Contribution Modal */}
+      {/* Edit Contribution Model */}
       <Modal visible={!!editModal} transparent animationType="fade" onRequestClose={() => setEditModal(null)}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setEditModal(null)} />

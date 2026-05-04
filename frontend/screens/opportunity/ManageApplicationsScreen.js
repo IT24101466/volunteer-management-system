@@ -4,6 +4,7 @@ import {
   TouchableOpacity, ActivityIndicator, Image,
   Modal, RefreshControl
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useToast } from '../../components/Toast';
 import { useConfirm } from '../../components/ConfirmModal';
@@ -31,6 +32,7 @@ const ManageApplicationsScreen = ({ route, navigation }) => {
   const { opportunityId } = route.params;
   const toast = useToast();
   const confirm = useConfirm();
+  const insets = useSafeAreaInsets();
 
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -106,9 +108,6 @@ const ManageApplicationsScreen = ({ route, navigation }) => {
             <TouchableOpacity style={[styles.iconBtn, styles.iconBtnCompletion]} onPress={() => updateStatus(app._id, 'completed')} disabled={busy}>
               {isLoading(app._id, 'completed') ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="trophy-outline" size={14} color="#fff" />}
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.iconBtn, styles.iconBtnContrib]} onPress={() => navigation.navigate('AllContributions')}>
-              <Ionicons name="time-outline" size={14} color="#9b59b6" />
-            </TouchableOpacity>
             <TouchableOpacity style={[styles.iconBtn, styles.iconBtnRemovePerson]} onPress={() => handleRemove(app)} disabled={busy}>
               <Ionicons name="person-remove-outline" size={14} color="#e74c3c" />
             </TouchableOpacity>
@@ -143,7 +142,7 @@ const ManageApplicationsScreen = ({ route, navigation }) => {
     const app = detailApp;
     const busy = Object.keys(actionLoading).some(k => k.startsWith(app._id) && actionLoading[k]);
     return (
-      <View style={styles.detailContainer}>
+      <View style={[styles.detailContainer, { paddingTop: insets.top }]}>
         <View style={styles.detailTopBar}>
           <TouchableOpacity onPress={() => setDetailApp(null)} style={styles.detailClose}>
             <Ionicons name="close" size={22} color="#555" />
@@ -201,21 +200,11 @@ const ManageApplicationsScreen = ({ route, navigation }) => {
                 <TouchableOpacity style={[styles.detailBtn, { backgroundColor: '#2e86de' }]} onPress={() => updateStatus(app._id, 'completed')} disabled={busy}>
                   {isLoading(app._id, 'completed') ? <ActivityIndicator color="#fff" /> : <><Ionicons name="trophy-outline" size={16} color="#fff" /><Text style={styles.detailBtnText}> Mark Completion</Text></>}
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.detailBtn, { backgroundColor: '#9b59b6' }]} onPress={() => { setDetailApp(null); navigation.navigate('AllContributions'); }}>
-                  <Ionicons name="time-outline" size={16} color="#fff" />
-                  <Text style={styles.detailBtnText}> Contributions</Text>
-                </TouchableOpacity>
                 <TouchableOpacity style={[styles.detailBtn, { borderWidth: 1.5, borderColor: '#e74c3c', backgroundColor: '#fff' }]} onPress={() => handleRemove(app)} disabled={busy}>
                   <Ionicons name="person-remove-outline" size={16} color="#e74c3c" />
                   <Text style={[styles.detailBtnText, { color: '#e74c3c' }]}> Remove</Text>
                 </TouchableOpacity>
               </>
-            )}
-            {app.status === 'completed' && (
-              <TouchableOpacity style={[styles.detailBtn, { backgroundColor: '#9b59b6' }]} onPress={() => { setDetailApp(null); navigation.navigate('AllContributions'); }}>
-                <Ionicons name="time-outline" size={16} color="#fff" />
-                <Text style={styles.detailBtnText}> View Contributions</Text>
-              </TouchableOpacity>
             )}
           </View>
         </ScrollView>
@@ -283,7 +272,7 @@ const ManageApplicationsScreen = ({ route, navigation }) => {
         )}
       </ScrollView>
 
-      {/* Applicant Detail Modal */}
+      {/* Applicant Detail Model */}
       <Modal visible={!!detailApp} animationType="slide" onRequestClose={() => setDetailApp(null)}>
         {renderDetail()}
       </Modal>

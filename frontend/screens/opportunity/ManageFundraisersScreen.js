@@ -275,7 +275,7 @@ const ManageFundraisersScreen = ({ route }) => {
         })}
       </ScrollView>
 
-      {/* Donors Modal */}
+      {/* Donors Model */}
       <Modal visible={!!donorsModal} animationType="slide" onRequestClose={() => setDonorsModal(null)}>
         <View style={styles.donorsModal}>
           <View style={styles.donorsHeader}>

@@ -100,17 +100,45 @@ const MyApplicationsScreen = ({ navigation }) => {
         </Text>
       </View>
 
-      <Text style={styles.appliedDate}>Applied: {new Date(item.appliedAt).toDateString()}</Text>
+      <View style={styles.detailRow}>
+        <Ionicons name="calendar-outline" size={14} color="#888" style={styles.detailIcon} />
+        <Text style={styles.cardDetail}>Applied: {new Date(item.appliedAt).toDateString()}</Text>
+      </View>
 
-      {item.status === 'completed' && (
-        <TouchableOpacity
-          style={styles.feedbackButton}
-          onPress={() => navigation.navigate('SubmitFeedback', { opportunity: item.opportunity })}
-        >
-          <Ionicons name="star-outline" size={15} color="#fff" style={{ marginRight: 5 }} />
-          <Text style={styles.feedbackButtonText}>Give Feedback</Text>
-        </TouchableOpacity>
-      )}
+      {item.phone ? (
+        <View style={styles.detailRow}>
+          <Ionicons name="call-outline" size={14} color="#888" style={styles.detailIcon} />
+          <Text style={styles.cardDetail}>{item.phone}</Text>
+        </View>
+      ) : null}
+
+      {item.expectedHours ? (
+        <View style={styles.detailRow}>
+          <Ionicons name="time-outline" size={14} color="#888" style={styles.detailIcon} />
+          <Text style={styles.cardDetail}>Expected {item.expectedHours} hr{item.expectedHours !== 1 ? 's' : ''}</Text>
+        </View>
+      ) : null}
+
+      {item.coverLetter ? (
+        <View style={styles.textBlock}>
+          <Text style={styles.textBlockLabel}>Cover Letter</Text>
+          <Text style={styles.textBlockBody}>{item.coverLetter}</Text>
+        </View>
+      ) : null}
+
+      {item.motivation ? (
+        <View style={styles.textBlock}>
+          <Text style={styles.textBlockLabel}>Motivation</Text>
+          <Text style={styles.textBlockBody}>{item.motivation}</Text>
+        </View>
+      ) : null}
+
+      {item.hopingToGain ? (
+        <View style={styles.textBlock}>
+          <Text style={styles.textBlockLabel}>Hoping to Gain</Text>
+          <Text style={styles.textBlockBody}>{item.hopingToGain}</Text>
+        </View>
+      ) : null}
 
       {item.status === 'approved' && (
         <View style={styles.pendingActions}>
@@ -182,9 +210,9 @@ const styles = StyleSheet.create({
   detailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
   detailIcon: { marginRight: 6 },
   cardDetail: { color: '#555', fontSize: 13, flex: 1 },
-  appliedDate: { color: '#aaa', fontSize: 12, marginTop: 6, marginBottom: 6 },
-  feedbackButton: { backgroundColor: '#9b59b6', borderRadius: 8, padding: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 6 },
-  feedbackButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+  textBlock: { backgroundColor: '#f8f9fa', borderRadius: 8, padding: 10, marginTop: 8 },
+  textBlockLabel: { fontSize: 11, fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  textBlockBody: { fontSize: 13, color: '#444', lineHeight: 19 },
   pendingActions: { flexDirection: 'row', gap: 8, marginTop: 8 },
   editButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#2e86de', borderRadius: 8, padding: 9 },
   editButtonText: { color: '#2e86de', fontWeight: 'bold', fontSize: 13 },

@@ -279,17 +279,6 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  // ── FAVOURITES MANAGEMENT — create a new list then add this opportunity to it ──
-  const handleCreateFavAndAdd = async () => {
-    setFavModalVisible(false);
-    try {
-      const res = await api.post('/api/favourites', { name: 'Favourites', description: 'My saved opportunities' });
-      await api.post(`/api/favourites/${res.data._id}/add`, { opportunityId });
-      toast.success('Saved!', `Created "Favourites" list and added "${opportunity?.title}".`);
-    } catch {
-      toast.error('Error', 'Failed to save');
-    }
-  };
   // ─────────────────────────────────────────────────────────────────────────────
 
   // ── LIKES — toggle like/dislike on the opportunity (POST /api/votes) ────────
@@ -605,13 +594,20 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
         );
       })}
 
-      {/* ── APPLICATION MANAGEMENT — Apply Now button (visible to non-creators) ── */}
+      {/* ── APPLICATION MANAGEMENT — action buttons ── */}
       <View style={styles.buttonContainer}>
         {isCreator ? (
-          <TouchableOpacity style={styles.manageButton} onPress={() => navigation.navigate('CreatorOpportunityDetail', { opportunityId })}>
-            <Ionicons name="settings-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
-            <Text style={styles.manageButtonText}>Manage Opportunity</Text>
-          </TouchableOpacity>
+          <View style={styles.applyRow}>
+            <TouchableOpacity style={styles.manageButton} onPress={() => navigation.navigate('CreatorOpportunityDetail', { opportunityId })}>
+              <Ionicons name="settings-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+              <Text style={styles.manageButtonText}>Manage Opportunity</Text>
+            </TouchableOpacity>
+            {user && (
+              <TouchableOpacity style={styles.saveButton} onPress={handleOpenFav}>
+                <Ionicons name="bookmark-outline" size={22} color="#2e86de" />
+              </TouchableOpacity>
+            )}
+          </View>
         ) : (
           <View style={styles.applyRow}>
             {/* Apply button — disabled if ended, closed, or already applied */}
@@ -643,8 +639,8 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
       </View>
       {/* ────────────────────────────────────────────────────────────────────── */}
 
-      {/* ── RATING — star rating card (visible to logged-in non-creators) ── */}
-      {user && !isCreator && (
+      {/* ── RATING — star rating card ── */}
+      {user && (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Rate This Opportunity</Text>
           <View style={styles.ratingRow}>
@@ -721,8 +717,9 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
         )}
       </View>
 
-      {/* ── COMMENTS — edit comment modal ── */}
+      {/* ── COMMENTS — edit comment model ── */}
       <Modal visible={!!editingComment} transparent animationType="slide" onRequestClose={() => setEditingComment(null)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setEditingComment(null)}>
           <View style={styles.editModal} onStartShouldSetResponder={() => true}>
             <View style={styles.modalHandle} />
@@ -750,9 +747,10 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
             </View>
           </View>
         </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
 
-      {/* Donors Modal */}
+      {/* Donors Model */}
       <Modal visible={!!donorsModal} animationType="slide" onRequestClose={() => setDonorsModal(null)}>
         <View style={styles.donorsModal}>
           <View style={styles.donorsHeader}>
@@ -799,10 +797,17 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
           {favLoading ? (
             <ActivityIndicator color="#2e86de" style={{ marginVertical: 20 }} />
           ) : favLists.length === 0 ? (
-            <TouchableOpacity style={styles.favListItem} onPress={handleCreateFavAndAdd}>
-              <Ionicons name="add-circle-outline" size={20} color="#2e86de" style={{ marginRight: 10 }} />
-              <Text style={styles.favListItemText}>Create "Favourites" list & save</Text>
-            </TouchableOpacity>
+            <View style={styles.favEmptyBox}>
+              <Ionicons name="bookmark-outline" size={36} color="#ddd" style={{ marginBottom: 10 }} />
+              <Text style={styles.favEmptyText}>You don't have any saved lists yet.</Text>
+              <Text style={styles.favEmptySubText}>Create a list first, then save opportunities to it.</Text>
+              <TouchableOpacity
+                style={styles.favGoBtn}
+                onPress={() => { setFavModalVisible(false); navigation.navigate('FavouritesList'); }}
+              >
+                <Text style={styles.favGoBtnText}>Go to Favourites</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <>
               {favLists.map(list => (
@@ -812,10 +817,6 @@ const OpportunityDetailScreen = ({ route, navigation }) => {
                   <Text style={styles.favListItemCount}>{list.opportunities?.length || 0}</Text>
                 </TouchableOpacity>
               ))}
-              <TouchableOpacity style={[styles.favListItem, { marginTop: 4, borderTopWidth: 1, borderTopColor: '#f0f0f0' }]} onPress={handleCreateFavAndAdd}>
-                <Ionicons name="add-circle-outline" size={20} color="#888" style={{ marginRight: 10 }} />
-                <Text style={[styles.favListItemText, { color: '#888' }]}>Create new list</Text>
-              </TouchableOpacity>
             </>
           )}
         </View>
@@ -889,6 +890,11 @@ const styles = StyleSheet.create({
   favListItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
   favListItemText: { flex: 1, fontSize: 15, color: '#333', fontWeight: '600' },
   favListItemCount: { fontSize: 13, color: '#aaa', fontWeight: 'bold' },
+  favEmptyBox: { alignItems: 'center', paddingVertical: 20 },
+  favEmptyText: { fontSize: 14, fontWeight: '600', color: '#555', marginBottom: 6, textAlign: 'center' },
+  favEmptySubText: { fontSize: 12, color: '#aaa', textAlign: 'center', marginBottom: 16 },
+  favGoBtn: { backgroundColor: '#2e86de', borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10 },
+  favGoBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
   // ─────────────────────────────────────────────────────────────────────────────
   // ── RATING styles ────────────────────────────────────────────────────────────
   ratingRow: { marginBottom: 6 },

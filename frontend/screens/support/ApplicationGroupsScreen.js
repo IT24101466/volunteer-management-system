@@ -210,16 +210,6 @@ const ApplicationGroupsScreen = () => {
         </View>
         <View style={styles.groupActions}>
           <TouchableOpacity
-            style={[styles.groupActionBtn, { backgroundColor: '#e8f8f0' }]}
-            onPress={() => handleBulkStatus(group, 'approved')}
-            disabled={!!bulkLoading[group._id + 'approved']}
-          >
-            {bulkLoading[group._id + 'approved']
-              ? <ActivityIndicator size="small" color="#27ae60" />
-              : <><Ionicons name="checkmark-done" size={12} color="#27ae60" /><Text style={[styles.groupActionText, { color: '#27ae60' }]}> Accept</Text></>
-            }
-          </TouchableOpacity>
-          <TouchableOpacity
             style={[styles.groupActionBtn, { backgroundColor: '#fde8e8' }]}
             onPress={() => handleBulkStatus(group, 'rejected')}
             disabled={!!bulkLoading[group._id + 'rejected']}
@@ -322,7 +312,7 @@ const ApplicationGroupsScreen = () => {
         )}
       </ScrollView>
 
-      {/* Create Group Modal */}
+      {/* Create Group Model */}
       <Modal visible={createGroupModal} transparent animationType="slide" onRequestClose={() => setCreateGroupModal(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCreateGroupModal(false)}>
@@ -357,7 +347,7 @@ const ApplicationGroupsScreen = () => {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Move to Group Modal */}
+      {/* Move to Group Model */}
       <Modal visible={!!moveAppModal} transparent animationType="slide" onRequestClose={() => setMoveAppModal(null)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setMoveAppModal(null)}>
           <View style={styles.bottomSheet} onStartShouldSetResponder={() => true}>

@@ -269,7 +269,7 @@ const FavouriteDetailScreen = ({ route, navigation }) => {
         }
       />
 
-      {/* Edit List Modal */}
+      {/* Edit List Model */}
       <Modal visible={editVisible} transparent animationType="fade" onRequestClose={() => setEditVisible(false)}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setEditVisible(false)} />

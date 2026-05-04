@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator, RefreshControl, SectionList,
-  Modal, ScrollView, Image
+  View, Text, TouchableOpacity,
+  StyleSheet, ActivityIndicator, RefreshControl, SectionList
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -27,18 +26,9 @@ const statusLabel = (s) => {
 
 const MyFundraisersScreen = ({ navigation }) => {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState('fundraisers');
   const [fundraisers, setFundraisers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  // Pending donations
-  const [pendingDonations, setPendingDonations] = useState([]);
-  const [pendingLoading, setPendingLoading] = useState(false);
-
-  // Donation detail modal
-  const [detailDonation, setDetailDonation] = useState(null);
-  const [statusUpdating, setStatusUpdating] = useState(null);
 
   const fetchFundraisers = async () => {
     try {
@@ -52,43 +42,13 @@ const MyFundraisersScreen = ({ navigation }) => {
     }
   };
 
-  const fetchPendingDonations = async () => {
-    setPendingLoading(true);
-    try {
-      const res = await api.get('/api/donations/my-fundraiser-pending');
-      setPendingDonations(res.data);
-    } catch {
-      toast.error('Error', 'Failed to load pending donations');
-    } finally {
-      setPendingLoading(false);
-      setRefreshing(false);
-    }
-  };
-
   useFocusEffect(useCallback(() => {
     fetchFundraisers();
-    fetchPendingDonations();
   }, []));
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchFundraisers();
-    fetchPendingDonations();
-  };
-
-  const handleStatusUpdate = async (donationId, newStatus) => {
-    setStatusUpdating(donationId + newStatus);
-    try {
-      await api.put(`/api/donations/${donationId}/status`, { status: newStatus });
-      toast.success('Updated', `Donation ${newStatus}`);
-      setDetailDonation(null);
-      fetchPendingDonations();
-      fetchFundraisers();
-    } catch (error) {
-      toast.error('Error', error.response?.data?.message || 'Failed to update status');
-    } finally {
-      setStatusUpdating(null);
-    }
   };
 
   // Build sections for fundraisers tab
@@ -173,53 +133,6 @@ const MyFundraisersScreen = ({ navigation }) => {
     );
   };
 
-  const renderPendingItem = ({ item }) => (
-    <View style={styles.pendingCard}>
-      <View style={styles.pendingCardTop}>
-        <View style={styles.pendingDonorCircle}>
-          <Ionicons name="person-outline" size={20} color="#2e86de" />
-        </View>
-        <View style={{ flex: 1, marginLeft: 10 }}>
-          <TouchableOpacity onPress={() => setDetailDonation(item)}>
-            <Text style={styles.pendingDonorName}>{item.donorName || item.donor?.name || 'Anonymous'}</Text>
-          </TouchableOpacity>
-          <Text style={styles.pendingFundraiserName} numberOfLines={1}>{item.fundraiser?.name}</Text>
-        </View>
-        <View style={styles.pendingAmountBadge}>
-          <Text style={styles.pendingAmountText}>LKR {Number(item.amount).toLocaleString()}</Text>
-        </View>
-      </View>
-      {item.message ? <Text style={styles.pendingMessage} numberOfLines={1}>"{item.message}"</Text> : null}
-      <Text style={styles.pendingDate}>{new Date(item.createdAt).toDateString()}</Text>
-      <View style={styles.pendingActions}>
-        <TouchableOpacity
-          style={styles.acceptBtn}
-          onPress={() => handleStatusUpdate(item._id, 'confirmed')}
-          disabled={!!statusUpdating}
-        >
-          {statusUpdating === item._id + 'confirmed'
-            ? <ActivityIndicator size="small" color="#fff" />
-            : <><Ionicons name="checkmark" size={15} color="#fff" /><Text style={styles.acceptBtnText}>Accept</Text></>
-          }
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.rejectBtn}
-          onPress={() => handleStatusUpdate(item._id, 'rejected')}
-          disabled={!!statusUpdating}
-        >
-          {statusUpdating === item._id + 'rejected'
-            ? <ActivityIndicator size="small" color="#e74c3c" />
-            : <><Ionicons name="close" size={15} color="#e74c3c" /><Text style={styles.rejectBtnText}>Reject</Text></>
-          }
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.detailsBtn} onPress={() => setDetailDonation(item)}>
-          <Text style={styles.detailsBtnText}>Details</Text>
-          <Ionicons name="chevron-forward" size={14} color="#2e86de" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
   if (loading) return <View style={styles.centered}><ActivityIndicator size="large" color="#27ae60" /></View>;
 
   return (
@@ -240,28 +153,7 @@ const MyFundraisersScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Tab bar */}
-      <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'fundraisers' && styles.tabActive]}
-          onPress={() => setActiveTab('fundraisers')}
-        >
-          <Ionicons name="cash-outline" size={15} color={activeTab === 'fundraisers' ? '#27ae60' : '#888'} />
-          <Text style={[styles.tabText, activeTab === 'fundraisers' && styles.tabTextActive]}>Fundraisers</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'pending' && styles.tabActive]}
-          onPress={() => setActiveTab('pending')}
-        >
-          <Ionicons name="time-outline" size={15} color={activeTab === 'pending' ? '#f39c12' : '#888'} />
-          <Text style={[styles.tabText, activeTab === 'pending' && styles.tabTextPending]}>
-            Pending Requests {pendingDonations.length > 0 ? `(${pendingDonations.length})` : ''}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {activeTab === 'fundraisers' ? (
-        fundraisers.length === 0 ? (
+      {fundraisers.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="cash-outline" size={64} color="#ddd" />
             <Text style={styles.emptyTitle}>No Fundraisers Yet</Text>
@@ -288,113 +180,7 @@ const MyFundraisersScreen = ({ navigation }) => {
             contentContainerStyle={{ padding: 15, paddingTop: 10 }}
             stickySectionHeadersEnabled={false}
           />
-        )
-      ) : (
-        pendingLoading ? (
-          <View style={styles.centered}><ActivityIndicator size="large" color="#f39c12" /></View>
-        ) : (
-          <FlatList
-            data={pendingDonations}
-            keyExtractor={(item) => item._id}
-            renderItem={renderPendingItem}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-            contentContainerStyle={{ padding: 15 }}
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <Ionicons name="checkmark-circle-outline" size={64} color="#ddd" />
-                <Text style={styles.emptyTitle}>No Pending Requests</Text>
-                <Text style={styles.emptySubtitle}>All donation requests have been reviewed.</Text>
-              </View>
-            }
-          />
-        )
       )}
-
-      {/* Donation Detail Modal */}
-      <Modal visible={!!detailDonation} transparent animationType="fade" onRequestClose={() => setDetailDonation(null)}>
-        <TouchableOpacity style={styles.detailOverlay} activeOpacity={1} onPress={() => setDetailDonation(null)}>
-          <View style={styles.detailModal} onStartShouldSetResponder={() => true}>
-            <View style={styles.detailHeader}>
-              <Text style={styles.detailTitle}>Donation Details</Text>
-              <TouchableOpacity onPress={() => setDetailDonation(null)}>
-                <Ionicons name="close" size={22} color="#888" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={styles.detailRow}>
-                <Ionicons name="person-outline" size={16} color="#888" />
-                <Text style={styles.detailLabel}>Donor</Text>
-                <Text style={styles.detailValue}>{detailDonation?.donorName || detailDonation?.donor?.name || 'Anonymous'}</Text>
-              </View>
-              {detailDonation?.donor?.email ? (
-                <View style={styles.detailRow}>
-                  <Ionicons name="mail-outline" size={16} color="#888" />
-                  <Text style={styles.detailLabel}>Email</Text>
-                  <Text style={styles.detailValue}>{detailDonation.donor.email}</Text>
-                </View>
-              ) : null}
-              {detailDonation?.donorPhone ? (
-                <View style={styles.detailRow}>
-                  <Ionicons name="call-outline" size={16} color="#888" />
-                  <Text style={styles.detailLabel}>Phone</Text>
-                  <Text style={styles.detailValue}>{detailDonation.donorPhone}</Text>
-                </View>
-              ) : null}
-              <View style={styles.detailRow}>
-                <Ionicons name="cash-outline" size={16} color="#888" />
-                <Text style={styles.detailLabel}>Amount</Text>
-                <Text style={[styles.detailValue, { fontWeight: 'bold', color: '#27ae60' }]}>
-                  LKR {Number(detailDonation?.amount || 0).toLocaleString()}
-                </Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Ionicons name="heart-outline" size={16} color="#888" />
-                <Text style={styles.detailLabel}>Fundraiser</Text>
-                <Text style={styles.detailValue} numberOfLines={1}>{detailDonation?.fundraiser?.name}</Text>
-              </View>
-              {detailDonation?.message ? (
-                <View style={styles.detailMsgBox}>
-                  <Text style={styles.detailMsgLabel}>Message</Text>
-                  <Text style={styles.detailMsgText}>"{detailDonation.message}"</Text>
-                </View>
-              ) : null}
-              {detailDonation?.receiptImage ? (
-                <View style={styles.receiptSection}>
-                  <Text style={styles.receiptLabel}>Bank Receipt</Text>
-                  <Image
-                    source={{ uri: `${BASE_URL}/${detailDonation.receiptImage}` }}
-                    style={styles.receiptImage}
-                    resizeMode="contain"
-                  />
-                </View>
-              ) : null}
-              <Text style={styles.detailDate}>Submitted on {detailDonation ? new Date(detailDonation.createdAt).toDateString() : ''}</Text>
-            </ScrollView>
-            <View style={styles.detailActions}>
-              <TouchableOpacity
-                style={styles.detailAcceptBtn}
-                onPress={() => handleStatusUpdate(detailDonation._id, 'confirmed')}
-                disabled={!!statusUpdating}
-              >
-                {statusUpdating === detailDonation?._id + 'confirmed'
-                  ? <ActivityIndicator color="#fff" />
-                  : <><Ionicons name="checkmark-circle-outline" size={18} color="#fff" style={{ marginRight: 6 }} /><Text style={styles.detailAcceptBtnText}>Confirm Donation</Text></>
-                }
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.detailRejectBtn}
-                onPress={() => handleStatusUpdate(detailDonation._id, 'rejected')}
-                disabled={!!statusUpdating}
-              >
-                {statusUpdating === detailDonation?._id + 'rejected'
-                  ? <ActivityIndicator color="#e74c3c" />
-                  : <><Ionicons name="close-circle-outline" size={18} color="#e74c3c" style={{ marginRight: 6 }} /><Text style={styles.detailRejectBtnText}>Reject</Text></>
-                }
-              </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
     </View>
   );
 };

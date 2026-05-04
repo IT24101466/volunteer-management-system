@@ -234,7 +234,7 @@ const AllCreatorApplicationsScreen = ({ navigation }) => {
         }
       />
 
-      {/* Detail Modal */}
+      {/* Detail Model */}
       {selected && (
         <Modal visible transparent animationType="slide" onRequestClose={() => setSelected(null)}>
           <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
